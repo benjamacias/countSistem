@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Vehículos{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Vehículos disponibles</h2>
+
+<!-- Barra de búsqueda y filtros -->
+<form method="get" class="d-flex justify-content-between align-items-center mb-4">
+  <div class="input-group w-50">
+  <div class="input-group">
+    <input type="text" name="q" class="form-control" placeholder="Buscar por descripción o conductor..." value="{{ request.GET.q }}">
+    <button class="btn btn-outline-secondary" type="submit">
+      <i class="bi bi-search"></i>
+    </button>
+  </div>
+  </div>
+
+  <div class="btn-group" role="group" aria-label="Ordenar por">
+    <button type="submit" name="orden" value="nuevo" class="btn {% if request.GET.orden == 'nuevo' %}btn-dark{% else %}btn-outline-dark{% endif %}">Nuevo</button>
+    <button type="submit" name="orden" value="precio_asc" class="btn {% if request.GET.orden == 'precio_asc' %}btn-dark{% else %}btn-outline-dark{% endif %}">Precio ascendente</button>
+    <button type="submit" name="orden" value="precio_desc" class="btn {% if request.GET.orden == 'precio_desc' %}btn-dark{% else %}btn-outline-dark{% endif %}">Precio descendente</button>
+  </div>
+</form>
+
+<!-- Grid de vehículos -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+  {% for vehicle in vehicles %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        {% if vehicle.image_url %}
+          <img src="{{ vehicle.image_url }}" class="card-img-top" alt="Imagen de {{ vehicle.plate }}">
+        {% else %}
+          <img src="https://placehold.co/600x400?text=No\nFoto" class="card-img-top" alt="Sin imagen">
+        {% endif %}
+        <div class="card-body">
+          <h6 class="card-title">{{ vehicle.plate }} – {{ vehicle.description }}</h6>
+          <p class="card-text mb-1"><strong>Tarifa:</strong> ${{ vehicle.price_per_km|default:"0" }}/km</p>
+          <p class="card-text text-muted small mb-0">
+            {% if vehicle.driver %}
+              Conductor: {{ vehicle.driver.name }}
+            {% else %}
+              <span class="text-muted">Sin conductor asignado</span>
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col">
+      <div class="alert alert-info">No hay vehículos registrados.</div>
+    </div>
+  {% endfor %}
+</div>
+{% if is_paginated %}
+<nav aria-label="Paginación de vehículos">
+  <ul class="pagination justify-content-center mt-4">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+          <span aria-hidden="true">&laquo;</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&laquo;</span>
+      </li>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="page-item"><a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+          <span aria-hidden="true">&raquo;</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&raquo;</span>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+
+
+{% endblock %}

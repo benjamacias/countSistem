@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<h2>Conductores</h2>
+<a href="{% url 'driver_create' %}" class="btn btn-primary">Crear Conductor</a>
+
+<ul>
+  {% for driver in drivers %}
+    <li style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#driverModal{{ driver.id }}">
+      <strong>{{ driver.name }}</strong> - {% with driver.vehicle_set.all.count as count %}
+        {{ count }} vehículo{{ count|pluralize }}
+      {% endwith %}
+    </li>
+
+    <!-- Modal -->
+    <div class="modal fade" id="driverModal{{ driver.id }}" tabindex="-1" aria-labelledby="driverModalLabel{{ driver.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="driverModalLabel{{ driver.id }}">
+              Conductor: {{ driver.name }} {{ driver.surname }}
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>DNI:</strong> {{ driver.dni }}</p>
+            <p><strong>Gmail:</strong> {{ driver.gmail }}</p>
+            <p><strong>Teléfono:</strong> {{ driver.phone }}</p>
+            <p><strong>Dirección:</strong> {{ driver.address }}</p>
+            <p><strong>Licencia:</strong> {{ driver.license_number }}</p>
+
+            <hr>
+            <h5>Vehículos asignados</h5>
+
+            {% if driver.vehicle_set.all %}
+              <div id="carousel{{ driver.id }}" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                  {% for vehicle in driver.vehicle_set.all %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                      <div class="card p-3">
+                        <h5>Patente: {{ vehicle.plate }}</h5>
+                        <p>Descripción: {{ vehicle.description }}</p>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ driver.id }}" data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ driver.id }}" data-bs-slide="next">
+                  <span class="carousel-control-next-icon"></span>
+                </button>
+              </div>
+            {% else %}
+              <p>Sin vehículos asignados.</p>
+            {% endif %}
+              <a href="{% url 'assign_vehicles' driver.id %}" class="btn btn-outline-primary mt-3">
+                Asignar Vehículos
+              </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</ul>
+{% endblock %}

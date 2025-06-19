@@ -1,0 +1,20 @@
+"""
+▶️ Pasos rápidos para arrancar
+--------------------------------
+1. Crear entorno virtual & instalar dependencias:
+   python -m venv .venv && source .venv/bin/activate
+   pip install Django django-environ
+2. Copiar este código y crear el proyecto con
+   django-admin startproject logistica_camiones .
+   (o mover archivos según estructura).
+3. Configurar variables de entorno (.env):
+   DEBUG=True
+   SECRET_KEY=pon-aqui-una-clave
+   DATABASE_URL=sqlite:///db.sqlite3  # o tu base preferida
+4. Ejecutar migraciones y crear superusuario:
+   python manage.py migrate
+   python manage.py createsuperuser
+5. Levantar servidor:
+   python manage.py runserver
+6. Acceder a http://127.0.0.1:8000/  (login con superusuario) y comenzar.
+"""

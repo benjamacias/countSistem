@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Registrar pago{% endblock %}
+
+{% block content %}
+<h3>Factura para Viaje #{{ invoice.trip.id|stringformat:"05d" }}</h3>
+
+
+<p><strong>Restante:</strong> ${{ remaining }}</p>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+
+  <button type="button"
+          class="btn btn-outline-info mb-2"
+          onclick="setRemaining()">Pagar restante</button>
+
+  <button class="btn btn-success">Guardar pago</button>
+  <a class="btn btn-secondary" href="{% url 'trips:invoice_detail' invoice.id %}">Cancelar</a>
+</form>
+
+<script>
+function setRemaining() {
+  const remainingAmount = parseFloat("{{ remaining|floatformat:2|safe }}");
+  const input = document.querySelector('input[name="amount"]');
+  if (input && !isNaN(remainingAmount)) {
+    input.value = remainingAmount;
+  }
+}
+</script>
+{% endblock %}

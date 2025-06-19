@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Factura{% endblock %}
+{% block content %}
+<h3>Registrar pago para Viaje #{{ invoice.trip.id|stringformat:"05d" }}</h3>
+
+<p><strong>Monto:</strong> ${{ invoice.amount }}</p>
+<p><strong>Pagado:</strong> ${{ invoice.paid_total }}</p>
+<p><strong>Por pagar:</strong> ${{ invoice.remaining }}</p>
+
+{% if invoice.remaining > 0 %}
+  <a class="btn btn-primary" href="{% url 'trips:payment_create' invoice.id %}">Registrar pago</a>
+{% endif %}
+
+<h5 class="mt-3">Pagos</h5>
+<table class="table table-sm">
+  <thead><tr><th>Fecha</th><th>Método</th><th>Monto</th></tr></thead>
+  <tbody>
+    {% for p in invoice.payments.all %}
+      <tr><td>{{ p.paid_at }}</td><td>{{ p.get_method_display }}</td><td>${{ p.amount }}</td></tr>
+    {% empty %}<tr><td colspan="3">Sin pagos</td></tr>{% endfor %}
+  </tbody>
+</table>
+<a class="btn btn-secondary" href="{% url 'trips:trip_list' %}">Volver</a>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Ingresar{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-4">
+    <form method="post" class="card p-4 shadow">
+      {% csrf_token %}
+      <h4 class="mb-3">Iniciar sesión</h4>
+      {{ form.as_p }}
+      <button class="btn btn-primary w-100">Entrar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

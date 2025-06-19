@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Clientes</h2>
+<a class="btn btn-success" href="{% url 'client_create' %}">Nuevo Cliente</a>
+<table class="table mt-3">
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>DNI</th>
+      <th>Asesoramientos</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cliente in clients %}
+    <tr>
+      <td>{{ cliente.nombre }} {{ cliente.apellido }}</td>
+      <td>{{ cliente.dni }}</td>
+      <td>
+        {% for a in cliente.asesoramientos.all %}
+          <p><strong>{{ a.tipo }}:</strong> {{ a.asesoramiento }}</p>
+        {% empty %}
+          <span class="text-muted">Sin asesoramientos</span>
+        {% endfor %}
+        <a href="{% url 'asesoramiento_create' cliente.id %}" class="btn btn-sm btn-outline-primary mt-2">Agregar</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

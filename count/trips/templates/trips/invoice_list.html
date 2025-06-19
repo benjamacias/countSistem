@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<h2>Facturación</h2>
+
+<!-- 🔍 Buscador -->
+<form method="get" class="mb-3 d-flex justify-content-between">
+  <input type="text" name="q" class="form-control me-2 w-50" placeholder="Buscar por cliente o ID de viaje" value="{{ request.GET.q }}">
+  <button type="submit" class="btn btn-primary">Buscar</button>
+</form>
+<ul class="list-group">
+  {% for invoice in invoices %}
+    <li class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#invoiceModal{{ invoice.id }}" style="cursor: pointer;">
+      <strong>#{{ invoice.trip.id|stringformat:"05d" }}</strong> – {{ invoice.trip.client }} – ${{ invoice.amount }}
+    </li>
+
+    <!-- Modal -->
+    <div class="modal fade" id="invoiceModal{{ invoice.id }}" tabindex="-1" aria-labelledby="invoiceModalLabel{{ invoice.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="invoiceModalLabel{{ invoice.id }}">Factura #{{ invoice.trip.id }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Cliente:</strong> {{ invoice.trip.client }}</p>
+            <p><strong>Total de pagos para esta factura:</strong> {{ invoice.payment_count }}</p>
+            <p><strong>Monto total facturado para este viaje:</strong> ${{ invoice.paid_total }}</p>
+            <p><strong>Restante a pagar:</strong> ${{ invoice.remaining }}</p>
+            <p><strong>Monto total:</strong> ${{ invoice.amount }}</p>
+            <p><strong>Fecha:</strong> {{ invoice.created_at|date:"d/m/Y" }}</p>
+
+            {% if invoice.id %}
+              <a href="{% url 'trips:invoice_detail' invoice.id %}" class="btn btn-outline-primary mt-3">
+                Ver detalles completos
+              </a>
+            {% else %}
+              <span class="text-muted">Factura sin detalles</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <li class="list-group-item text-muted">No se encontraron facturas.</li>
+  {% endfor %}
+</ul>
+
+<!-- Paginación -->
+{% if is_paginated %}
+<nav aria-label="Paginación de facturas">
+  <ul class="pagination justify-content-center mt-4">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+          <span aria-hidden="true">&laquo;</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&laquo;</span>
+      </li>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="page-item"><a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+          <span aria-hidden="true">&raquo;</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&raquo;</span>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}
