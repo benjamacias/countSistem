@@ -1,0 +1,43 @@
+# Ignore data files
+*.csv
+.key
+.csr
+.crt
+.key.pem
+.csr.pem
+db.sqlite3
+settings.py
+
+# Ignore Python cache files
+__pycache__/
+
+# Ignore virtual environment directories
+venv/
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+# Ignore log files
+*.log
+# Ignore coverage reports
+*.coverage
+# Ignore migrations
+migrations/
+# Ignore static files
+staticfiles/
+# Ignore media files
+media/
+# Ignore IDE/editor specific files
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+count/aprobado.csr
+count/MaciasBenjaPrueba.crt
+count/AFIP - Administración Federal de Ingresos Públicos.pdf
+count/private.key
+count/request.csr
+count/solicitar_cae.py
+env/Lib/site-packages/asgiref-3.8.1.dist-info/METADATA
+env/Lib/site-packages/certifi/cacert.pem

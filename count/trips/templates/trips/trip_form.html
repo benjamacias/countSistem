@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Nuevo viaje{% endblock %}
+{% block content %}
+
+<h3>Nuevo viaje</h3>
+<form method="post">
+  {% csrf_token %}
+
+  <!-- Campos de fecha -->
+  <div class="mb-3">
+    {{ form.departure_date.label_tag }}
+    {{ form.departure_date }}
+    {{ form.departure_date.errors }}
+  </div>
+  <div class="mb-3">
+    {{ form.arrival_date.label_tag }}
+    {{ form.arrival_date }}
+    {{ form.arrival_date.errors }}
+  </div>
+
+  <!-- Otros campos del formulario -->
+  {% for field in form %}
+    {% if field.name != 'departure_date' and field.name != 'arrival_date' %}
+      <div class="mb-3">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <!-- Direcciones intermedias -->
+  <h5>Direcciones intermedias</h5>
+  {{ addresses.management_form }}
+  <table class="table" id="address-table">
+    <thead>
+      <tr>
+        <th>Dirección</th>
+        <th>Orden</th>
+        <th>Eliminar</th>
+      </tr>
+    </thead>
+    <tbody id="address-forms">
+      {% for form in addresses.forms %}
+        <tr class="address-form">
+          <td>{{ form.address }}</td>
+          <td>{{ form.order }}</td>
+          <td>
+            {% if form.instance.pk %}
+              {{ form.DELETE }} Eliminar
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="button" class="btn btn-secondary" id="add-address-btn">Agregar dirección</button>
+
+  <!-- Plantilla del formulario vacío sólo con <tr> y celdas <td> -->
+  <table style="display:none;">
+    <tbody id="empty-form-template">
+      <tr class="address-form">
+        <td>{{ addresses.empty_form.address }}</td>
+        <td>{{ addresses.empty_form.order }}</td>
+        <td>{{ addresses.empty_form.DELETE }} Eliminar</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <br><br>
+  <button type="submit" class="btn btn-primary">Guardar</button>
+</form>
+
+{% endblock %}
+
+
+{% block scripts %}
+  {{ block.super }}
+{% endblock %}
