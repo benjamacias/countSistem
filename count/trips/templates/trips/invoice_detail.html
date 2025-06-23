@@ -6,6 +6,13 @@
 <p><strong>Monto:</strong> ${{ invoice.amount }}</p>
 <p><strong>Pagado:</strong> ${{ invoice.paid_total }}</p>
 <p><strong>Por pagar:</strong> ${{ invoice.remaining }}</p>
+<p><strong>Fecha de finalización:</strong> {{ invoice.created_at|date:"d/m/Y" }}</p>
+<p><strong>Cliente:</strong> {{ invoice.trip.client }}</p>
+{% if invoice.trip.driver %}
+  <p><strong>Chofer:</strong> {{ invoice.trip.driver }}</p>
+{% else %}
+  <p class="text-muted mb-0">Sin chofer asignado</p>
+{% endif %}
 
 {% if invoice.remaining > 0 %}
   <a class="btn btn-primary" href="{% url 'trips:payment_create' invoice.id %}">Registrar pago</a>
