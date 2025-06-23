@@ -14,7 +14,8 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.db.models import Sum
 from django.db.models import Prefetch
-
+from django.db.models.functions import Concat
+from django.db.models import Value
 
 ADDRESS_PREFIX = "addresses" 
 
@@ -47,19 +48,27 @@ class TripListView(ListView):
     def get_queryset(self):
         qs = Trip.objects.select_related("client", "driver", "vehicle").order_by("-id")
 
-        # Prefetch invoices para cada viaje, ordenando por id o lo que necesites
         qs = qs.prefetch_related(
             Prefetch('invoices', queryset=Invoice.objects.order_by('id'))
         )
 
-        # Tus filtros:
         q = self.request.GET.get("q")
         if q:
-            qs = qs.filter(
+            qs = qs.annotate(
+                full_name=Concat("client__nombre", Value(" "), "client__apellido")
+            ).filter(
+                Q(full_name__icontains=q) |
                 Q(client__nombre__icontains=q) |
                 Q(driver__name__icontains=q) |
-                Q(vehicle__plate__icontains=q)
+                Q(vehicle__plate__icontains=q) |
+                Q(id__icontains=q) |
+                Q(start_address__icontains=q) |
+                Q(end_address__icontains=q)
             )
+
+        cliente_id = self.request.GET.get("cliente_id")
+        if cliente_id:
+            qs = qs.filter(client__id=cliente_id)
 
         status = self.request.GET.getlist("status")
         if status:
@@ -76,6 +85,7 @@ class TripListView(ListView):
             qs = qs.filter(invoices__isnull=True)
 
         return qs
+
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -167,12 +177,14 @@ class InvoiceDetailView(DetailView):
 @login_required
 def payment_create(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
-
     paid = sum(p.amount for p in invoice.payments.all())  # ← uso de invoice.payments
     remaining = invoice.amount - paid                     # ← amount, no total
 
     if request.method == "POST":
         form = PaymentForm(request.POST)
+        form = PaymentForm(initial={
+            "client": invoice.trip.client if invoice.trip else None
+        })
         if form.is_valid():
             amount = form.cleaned_data["amount"]
             if amount > remaining:
@@ -190,7 +202,9 @@ def payment_create(request, pk):
                 return redirect("trips:invoice_detail", invoice.id)
     else:
         form = PaymentForm()
-
+        form = PaymentForm(initial={
+            "client": invoice.trip.client if invoice.trip else None
+        })
     return render(
         request,
         "trips/payment_form.html",

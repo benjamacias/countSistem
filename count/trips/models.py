@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 import re
-
+from django.db.models import Sum
 from django.db import models
 
 def validate_plate(value):
@@ -36,6 +36,18 @@ class Client(models.Model):
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
+    
+    @property
+    def total_facturado(self):
+        return Invoice.objects.filter(trip__client=self).aggregate(total=Sum("amount"))["total"] or 0
+
+    @property
+    def total_pagado(self):
+        return Payment.objects.filter(invoice__trip__client=self).aggregate(total=Sum("amount"))["total"] or 0
+
+    @property
+    def total_restante(self):
+        return self.total_facturado - self.total_pagado
 
 
 class Asesoramiento(models.Model):
