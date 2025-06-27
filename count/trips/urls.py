@@ -7,7 +7,10 @@ from .views import (
     InvoiceListView,
     VehicleListView,
     ClientListView,
-    DriverListView
+    DriverListView,
+    driver_edit,
+    DriverAdvanceCreateView,
+    DriverAdvanceListView
 )
 
 app_name = "trips"
@@ -28,6 +31,8 @@ urlpatterns = [
     path("invoices/", InvoiceListView.as_view(), name="invoice_list"),
     path("invoice/<int:pk>/", InvoiceDetailView.as_view(), name="invoice_detail"),
     path("invoice/<int:pk>/pay/", views.payment_create, name="payment_create"),
+    path("nuevo/<int:driver_id>/", DriverAdvanceCreateView.as_view(), name="create"),
+    path("lista/", DriverAdvanceListView.as_view(), name="list"),
 
     # Clientes
     path("clients/", ClientListView.as_view(), name="clients_list"),
@@ -38,6 +43,9 @@ urlpatterns = [
     path("drivers/", DriverListView.as_view(), name="drivers_list"),
     path("drivers/new/", views.driver_create, name="driver_create"),
     path("drivers/<int:driver_id>/assign/", views.assign_vehicles, name="assign_vehicles"),
+    path('drivers/<int:pk>/edit/', driver_edit, name='driver_edit'),
+    path("direccion/nueva/", views.empty_address_form, name="empty_address_form"),
+
 
     # Vehículos
     path("vehicles/", VehicleListView.as_view(), name="vehicles_list"),

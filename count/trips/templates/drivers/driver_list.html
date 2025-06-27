@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Choferes{% endblock %}
-
+{% load dict_extras %}
+{% load custom_filters %}
+{%load form_tags%}
 {% block content %}
 <div class="container mt-4">
 
@@ -31,6 +33,35 @@
                 <li><strong>Teléfono:</strong> {{ driver.phone }}</li>
                 <li><strong>Email:</strong> {{ driver.gmail }}</li>
                 <li><strong>Licencia:</strong> {{ driver.license_number }} (vence {{ driver.license_expiry|date:"d/m/Y" }})</li>
+                <!-- Direcciones en slider -->
+                {% if driver.addresses.all %}
+                  <p><strong>Direcciones:</strong></p>
+                  <div id="addressCarousel{{ driver.id }}" class="carousel slide mb-3" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                      {% for address in driver.addresses.all %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                          <div class="p-3 border rounded bg-light">
+                            <p class="mb-1">{{ address.address }}</p>
+                            <p class="mb-0 text-muted">{{ address.locality }} - {{ address.postal_code }}</p>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#addressCarousel{{ driver.id }}" data-bs-slide="prev">
+                      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Anterior</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#addressCarousel{{ driver.id }}" data-bs-slide="next">
+                      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Siguiente</span>
+                    </button>
+                  </div>
+                {% else %}
+                  <strong><p class="text-muted mb-3">Sin direcciones registradas</p></strong>
+                {% endif %}
+
+                <!-- Total anticipos -->
+                <p><strong>Total anticipos:</strong> $ {{ driver.advances.all|sum_field:"amount" }}</p>
               </ul>
 
               {% if driver.vehicle_set.all %}
@@ -45,13 +76,71 @@
               {% endif %}
 
               <div class="mt-auto">
-                <a href="{% url 'trips:assign_vehicles' driver.id %}" class="btn btn-outline-primary btn-sm w-100">
+                <!-- Asignar vehículo -->
+                <a href="{% url 'trips:assign_vehicles' driver.id %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
                   <i class="bi bi-truck me-1"></i> Asignar vehículo
+                </a>
+
+                <!-- Editar chofer -->
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm w-100 mb-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editDriverModal{{ driver.id }}">
+                  <i class="bi bi-pencil-square me-1"></i> Editar
+                </button>
+
+                <!-- Nuevo adelanto -->
+                <a href="{% url 'trips:create' driver.id %}" class="btn btn-outline-success btn-sm w-100">
+                  <i class="bi bi-cash-coin me-1"></i> Nuevo adelanto
                 </a>
               </div>
             </div>
           </div>
         </div>
+        <!-- Modal edición chofer -->
+        <div class="modal fade" id="editDriverModal{{ driver.id }}" tabindex="-1" aria-labelledby="editDriverModalLabel{{ driver.id }}" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+              <form method="post" action="{% url 'trips:driver_edit' driver.id %}">
+                {% csrf_token %}
+                <div class="modal-header bg-light">
+                  <h5 class="modal-title" id="editDriverModalLabel{{ driver.id }}">
+                    <i class="bi bi-pencil-square me-2"></i> Editar: {{ driver.name }} {{ driver.surname }}
+                  </h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                  {% with form=driver_forms|get_item:driver.id %}
+                    <div class="row">
+                    {% for field in form %}
+                      {% if field.name != "vehicles" and field.name != "vehicle_set" %}
+                        <div class="col-md-6 mb-3">
+                          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                          {{ field|add_class:"form-control" }}
+                          {% for error in field.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+
+                    </div>
+                  {% endwith %}
+                </div>
+                <div class="modal-footer bg-light">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i> Cancelar
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> Guardar cambios
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+
       {% endfor %}
     </div>
   {% else %}

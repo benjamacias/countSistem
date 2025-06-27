@@ -122,7 +122,7 @@ class ClientForm(forms.ModelForm):
 class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
-        fields = ["plate", "description"]
+        fields = ["plate", "description", "driver", "image", "price_per_km"]
         
     def clean_plate(self):
         plate = self.cleaned_data.get("plate", "").upper().replace(" ", "")
@@ -152,31 +152,106 @@ class AssignVehiclesForm(forms.ModelForm):
         fields = ["name", "vehicles"]
 
 class DriverForm(forms.ModelForm):
-    vehicles = forms.ModelMultipleChoiceField(
-        queryset=Vehicle.objects.filter(driver__isnull=True),
-        required=False,
-        widget=forms.CheckboxSelectMultiple,
-        label="Vehículos disponibles para asignar"
-    )
-
     class Meta:
         model = Driver
         fields = [
-            "name", "surname", "dni", "gmail", "phone",
-            "address", "license_number", "license_expiry"
+            "name",
+            "surname",
+            "dni",
+            "gmail",
+            "phone",
+            "license_number",
+            "license_expiry",
         ]
+        widgets = {
+            "license_expiry": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+        }
 
     def save(self, commit=True):
         driver = super().save(commit=commit)
-        # No asignamos vehículos acá — lo hacemos fuera del form (en la vista)
         return driver
 
 class DriverAdvanceForm(forms.ModelForm):
+    driver = forms.ModelChoiceField(
+        queryset=Driver.objects.all(),
+        label="Chofer",
+        widget=forms.HiddenInput(),
+        required=False  
+    )
+
+    category = forms.ChoiceField(
+        choices=DriverAdvance.AdvanceCategory.choices,
+        label="Categoría",
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+
+    amount = forms.DecimalField(
+        label="Monto",
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej. 5000.00"})
+    )
+
+    description = forms.CharField(
+        label="Descripción",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Opcional"})
+    )
+
     class Meta:
         model = DriverAdvance
-        fields = ["category", "amount", "description"]
+        fields = ["driver", "category", "amount", "description"]
+
+
+class DriverAdvanceFormCreate(forms.ModelForm):
+    driver = forms.ModelChoiceField(
+        queryset=Driver.objects.all(),
+        label="Chofer",
+        widget=forms.Select(attrs={"class": "form-select"}),  # ⬅️ CAMBIO: ya no es HiddenInput
+        required=True
+    )
+
+    category = forms.ChoiceField(
+        choices=DriverAdvance.AdvanceCategory.choices,
+        label="Categoría",
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+
+    amount = forms.DecimalField(
+        label="Monto",
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej. 5000.00"})
+    )
+
+    description = forms.CharField(
+        label="Descripción",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Opcional"})
+    )
+
+    class Meta:
+        model = DriverAdvance
+        fields = ["driver", "category", "amount", "description"]
+
 
 class DriverAddressForm(forms.ModelForm):
+    address = forms.CharField(
+        label="Dirección",
+        max_length=255,
+        widget=forms.TextInput(attrs={"placeholder": "Ej. Av. Siempre Viva 742", "class": "form-control"})
+    )
+    locality = forms.CharField(
+        label="Localidad",
+        max_length=100,
+        widget=forms.TextInput(attrs={"placeholder": "Ej. Córdoba", "class": "form-control"})
+    )
+    postal_code = forms.CharField(
+        label="Código Postal",
+        max_length=20,
+        widget=forms.TextInput(attrs={"placeholder": "Ej. X5000", "class": "form-control"})
+    )
+
     class Meta:
         model = DriverAddress
         fields = ["address", "locality", "postal_code"]
@@ -184,7 +259,7 @@ class DriverAddressForm(forms.ModelForm):
 class VehicleInlineForm(forms.ModelForm):
     class Meta:
         model = Vehicle
-        fields = ["plate", "description"]
+        fields = ["plate", "description", "driver", "image", "price_per_km"]
 
 
 
@@ -194,7 +269,7 @@ class DriverWithVehicleForm(forms.ModelForm):
 
     class Meta:
         model = Driver
-        fields = ["name", "surname", "dni", "gmail", "phone", "address", "license_number"]
+        fields = ["name", "surname", "dni", "gmail", "phone", "license_number", "license_expiry"]
 
     def clean_plate(self):
         plate = self.cleaned_data.get("plate", "").upper().replace(" ", "")

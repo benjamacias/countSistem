@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Adelantos{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Adelantos</h3>
+  </div>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Chofer</th>
+        <th>Categoría</th>
+        <th>Monto</th>
+        <th>Descripción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for adv in advances %}
+        <tr>
+          <td>{{ adv.date|date:"d/m/Y" }}</td>
+          <td>{{ adv.driver }}</td>
+          <td>{{ adv.get_category_display }}</td>
+          <td>${{ adv.amount }}</td>
+          <td>{{ adv.description|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5" class="text-muted text-center">No hay adelantos registrados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

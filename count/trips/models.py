@@ -96,7 +96,6 @@ class Driver(models.Model):
     dni = models.CharField(max_length=20, unique=True, blank=True, null=True, help_text="DNI del conductor")
     gmail = models.EmailField(max_length=254, unique=True, blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
-    address = models.CharField(max_length=255, blank=True, null=True)
     license_number = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Número de licencia del conductor")
     license_expiry = models.DateField("Vencimiento de licencia", blank=True, null=True)
 

@@ -5,7 +5,11 @@
 
 {% block content %}
 <h2>Productos</h2>
-
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'trips:product_create' %}" class="btn btn-success">
+    <i class="bi bi-plus-circle me-1"></i> Nuevo producto
+  </a>
+</div>
 <ul class="list-group" id="product-list">
   {% for product in products %}
     <li class="list-group-item list-group-item-action"

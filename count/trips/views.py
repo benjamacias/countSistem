@@ -20,8 +20,10 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
-from .forms import DriverForm, DriverAddressFormSet, DriverAdvanceFormSet
-
+from .forms import DriverForm, DriverAddressFormSet, DriverAdvanceFormSet, DriverAddressForm, DriverAdvanceForm, DriverAdvanceFormCreate
+from django.http import HttpResponse
+from django.views.generic.edit import UpdateView
+from .models import Driver, Vehicle, DriverAddress, DriverAdvance
 ADDRESS_PREFIX = "addresses" 
 
 
@@ -35,6 +37,11 @@ def get_vehicles_by_driver(request):
     ]
     return JsonResponse(data, safe=False)
 
+def empty_address_form(request):
+    total = request.GET.get("form_count", "__prefix__")
+    form = DriverAddressForm(prefix=f"address-{total}")
+    html = render_to_string("partials/address_form_htmx.html", {"form": form})
+    return HttpResponse(html)
 
 @require_GET
 @csrf_exempt
@@ -47,13 +54,6 @@ def get_product_price(request):
     except Product.DoesNotExist:
         return JsonResponse({"error": "Producto no encontrado"}, status=404)
 
-
-
-@method_decorator(login_required, name="dispatch")
-class ClientListView(ListView):
-    model = Client
-    template_name = "clients/client_list.html"
-    context_object_name = "clients"
 
 
 
@@ -247,6 +247,24 @@ def client_create(request):
         form = ClientForm()
     return render(request, "clients/client_form.html", {"form": form})
 
+@method_decorator(login_required, name="dispatch")
+class ClientListView(ListView):
+    model = Client
+    template_name = "clients/client_list.html"
+    context_object_name = "clients"
+
+def asesoramiento_create(request, cliente_id):
+    cliente = get_object_or_404(Client, id=cliente_id)
+    if request.method == 'POST':
+        form = AsesoramientoForm(request.POST)
+        if form.is_valid():
+            asesoramiento = form.save(commit=False)
+            asesoramiento.cliente = cliente
+            asesoramiento.save()
+            return redirect('clients_list')
+    else:
+        form = AsesoramientoForm()
+    return render(request, 'clients/form_asesoramiento.html', {'form': form, 'cliente': cliente})
 
 @method_decorator(login_required, name="dispatch")
 class DriverListView(ListView):
@@ -254,9 +272,33 @@ class DriverListView(ListView):
     template_name = "drivers/driver_list.html"
     context_object_name = "drivers"
 
-def drivers_list(request):
-    drivers = Driver.objects.prefetch_related('vehicle_set').all()
-    return render(request, 'drivers/driver_list.html', {'drivers': drivers})
+    def drivers_list(request):
+        drivers = Driver.objects.prefetch_related('vehicle_set').all()
+        return render(request, 'drivers/driver_list.html', {'drivers': drivers})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["driver_forms"] = {
+            driver.id: DriverForm(instance=driver)
+            for driver in context["drivers"]
+        }
+        return context
+    
+@login_required
+def driver_edit(request, pk):
+    driver = get_object_or_404(Driver, pk=pk)
+
+    if request.method == "POST":
+        form = DriverForm(request.POST, instance=driver)
+        if form.is_valid():
+            form.save()
+            return redirect("trips:drivers_list")  # redirige a la lista de choferes
+        else:
+            # Opcional: si querés manejar errores, podés almacenarlos en messages o pasar por GET
+            pass
+
+    # Si alguien hace GET a esta URL, redirigimos a la lista
+    return redirect("trips:drivers_list")
 
 @login_required
 def vehicle_create(request):
@@ -273,42 +315,76 @@ def vehicle_create(request):
 def driver_create(request):
     if request.method == "POST":
         form = DriverForm(request.POST)
-        address_formset = DriverAddressFormSet(request.POST, prefix="address")
-        advance_formset = DriverAdvanceFormSet(request.POST, prefix="advance")
+        address_formset = DriverAddressFormSet(request.POST, prefix='addresses')
+        advance_formset = DriverAdvanceFormSet(request.POST, prefix='advances')
 
         if form.is_valid() and address_formset.is_valid() and advance_formset.is_valid():
             driver = form.save()
 
+            # Asignar vehículos seleccionados
+            vehicles = form.cleaned_data.get("vehicles")
+            if vehicles:
+                vehicles.update(driver=driver)
+
             # Guardar direcciones
             addresses = address_formset.save(commit=False)
-            for addr in addresses:
-                addr.driver = driver
-                addr.save()
+            for address in addresses:
+                address.driver = driver
+                address.save()
+            for obj in address_formset.deleted_objects:
+                obj.delete()
 
-            # Guardar adelantos
+            # Guardar anticipos
             advances = advance_formset.save(commit=False)
-            for adv in advances:
-                adv.driver = driver
-                adv.save()
-
-            # Asignar vehículos (solo si estaban disponibles)
-            vehicles = form.cleaned_data.get("vehicles")
-            for v in vehicles:
-                if v.driver is None:
-                    v.driver = driver
-                    v.save()
+            for advance in advances:
+                advance.driver = driver
+                advance.save()
+            for obj in advance_formset.deleted_objects:
+                obj.delete()
 
             return redirect("trips:drivers_list")
     else:
         form = DriverForm()
-        address_formset = DriverAddressFormSet(prefix="address")
-        advance_formset = DriverAdvanceFormSet(prefix="advance")
+        address_formset = DriverAddressFormSet(queryset=DriverAddress.objects.none(), prefix='addresses')
+        advance_formset = DriverAdvanceFormSet(queryset=DriverAdvance.objects.none(), prefix='advances')
 
     return render(request, "drivers/driver_form.html", {
         "form": form,
         "address_formset": address_formset,
         "advance_formset": advance_formset,
     })
+
+@method_decorator(login_required, name="dispatch")
+class DriverAdvanceCreateView(CreateView):
+    model = DriverAdvance
+    form_class = DriverAdvanceFormCreate
+    template_name = "advances/advance_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.driver = get_object_or_404(Driver, pk=kwargs.get("driver_id"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        return {"driver": self.driver}
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["driver"] = self.driver
+        return context
+
+    def form_valid(self, form):
+        form.instance.driver = self.driver
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy("trips:list")
+    
+@method_decorator(login_required, name="dispatch")
+class DriverAdvanceListView(ListView):
+    model = DriverAdvance
+    template_name = "advances/advance_list.html"
+    context_object_name = "advances"
+    ordering = ['-date']
 
 @method_decorator(login_required, name="dispatch")
 class InvoiceListView(ListView):
@@ -390,19 +466,6 @@ def trip_cancel(request, pk):
     else:
         messages.warning(request, f"El viaje #{trip.id} ya fue completado y no puede cancelarse.")
     return redirect('trips:trip_list')  # Asegurate que 'trip_list' sea el nombre de tu vista de lista
-
-def asesoramiento_create(request, cliente_id):
-    cliente = get_object_or_404(Client, id=cliente_id)
-    if request.method == 'POST':
-        form = AsesoramientoForm(request.POST)
-        if form.is_valid():
-            asesoramiento = form.save(commit=False)
-            asesoramiento.cliente = cliente
-            asesoramiento.save()
-            return redirect('clients_list')
-    else:
-        form = AsesoramientoForm()
-    return render(request, 'clients/form_asesoramiento.html', {'form': form, 'cliente': cliente})
 
 @login_required
 def assign_vehicles_to_driver(request, pk):

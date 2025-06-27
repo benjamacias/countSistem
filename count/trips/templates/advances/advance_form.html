@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block title %}Nuevo Adelanto{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="col-md-8 offset-md-2">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h4 class="mb-4">
+            <i class="bi bi-cash-coin me-1"></i> Nuevo Adelanto para <strong>{{ driver }}</strong>
+        </h4>
+        <form method="post">
+          {% csrf_token %}
+          {% for field in form %}
+            <div class="mb-3">
+              <label class="form-label">{{ field.label }}</label>
+              {% render_field field class="form-control" %}
+              {% for error in field.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+          <div class="text-end">
+            <a href="{% url 'trips:list' %}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i> Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

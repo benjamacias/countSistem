@@ -13,10 +13,11 @@
           <form method="post">
             {% csrf_token %}
 
+            <!-- ======================= DATOS DEL CHOFER ======================= -->
             <h5 class="mb-3">Datos del Chofer</h5>
             <div class="row">
               {% for field in form %}
-                {% if field.name != "plate" and field.name != "description" %}
+                {% if field.name != "vehicles" %}
                   <div class="col-md-6 mb-3">
                     <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                     {% render_field field class="form-control" %}
@@ -28,21 +29,93 @@
               {% endfor %}
             </div>
 
-            <h5 class="mt-4 mb-3">Datos del Vehículo</h5>
-            <div class="row">
-              {% for field in form %}
-                {% if field.name == "plate" or field.name == "description" %}
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                    {% render_field field class="form-control" %}
-                    {% for error in field.errors %}
-                      <div class="text-danger small">{{ error }}</div>
-                    {% endfor %}
-                  </div>
-                {% endif %}
+            <!-- ======================= DIRECCIONES ======================= -->
+            <h5 class="mt-4 mb-2">Direcciones</h5>
+            <hr>
+            {{ address_formset.management_form }}
+
+            <div id="address-forms">
+              {% for form in address_formset %}
+                <div class="border rounded p-3 mb-3 bg-light address-form" id="address-form-{{ form.prefix }}">
+                  {% for field in form.visible_fields %}
+                    {% if field.name != "id" and field.name != "driver" and field.name != "DELETE" %}
+                      <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {% render_field field class="form-control" %}
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if form.can_delete %}
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                      <div class="form-check">
+                        {{ form.DELETE }}
+                        <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">
+                          <i class="bi bi-trash text-danger me-1"></i> Marcar para eliminar
+                        </label>
+                      </div>
+                      <button type="button" class="btn btn-outline-danger btn-sm"
+                              hx-trigger="click"
+                              hx-target="#address-form-{{ form.prefix }}"
+                              hx-swap="outerHTML"
+                              onclick="markDeleted('{{ form.prefix }}')">
+                        <i class="bi bi-x-circle me-1"></i> Quitar
+                      </button>
+                    </div>
+                  {% endif %}
+
+                  {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                  {% endfor %}
+                </div>
               {% endfor %}
             </div>
 
+            <div class="text-end mb-3">
+              <button type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      hx-get="{% url 'trips:empty_address_form' %}?form_count={{ address_formset.total_form_count }}"
+                      hx-target="#address-forms"
+                      hx-swap="beforeend"
+                      onclick="incrementAddressCount()">
+                <i class="bi bi-plus-circle me-1"></i> Agregar dirección
+              </button>
+            </div>
+
+            <!-- ======================= ANTICIPOS ======================= -->
+            <h5 class="mt-4 mb-2">Anticipos</h5>
+            <hr>
+            {{ advance_formset.management_form }}
+
+            <div id="advance-forms">
+              {% for form in advance_formset %}
+                <div class="border rounded p-3 mb-3 bg-light">
+                  {% for field in form.visible_fields %}
+                    {% if field.name != "id" and field.name != "driver" and field.name != "DELETE" %}
+                      <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {% render_field field class="form-control" %}
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if form.can_delete %}
+                    <div class="form-check mt-2">
+                      {{ form.DELETE }}
+                      <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">
+                        <i class="bi bi-trash text-danger me-1"></i> Marcar para eliminar
+                      </label>
+                    </div>
+                  {% endif %}
+
+                  {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- ======================= GUARDAR ======================= -->
             <div class="d-flex justify-content-end mt-4">
               <button type="submit" class="btn btn-primary">
                 <i class="bi bi-check-circle me-1"></i> Guardar
@@ -56,4 +129,44 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      let addressCount = parseInt("{{ address_formset.total_form_count|default:0 }}");
+
+      const addButton = document.getElementById("add-address");
+      const totalFormsInput = document.getElementById("id_address-TOTAL_FORMS");
+
+      if (addButton) {
+        addButton.addEventListener("click", function () {
+          addressCount++;
+          if (totalFormsInput) {
+            totalFormsInput.value = addressCount;
+          }
+        });
+      }
+
+      window.markDeleted = function (prefix) {
+        const deleteInput = document.querySelector(`#id_${prefix}-DELETE`);
+        if (deleteInput) {
+          deleteInput.checked = true;
+        }
+      }
+
+      window.markDeletedAndRemove = function (formId, deleteInputId) {
+        const deleteInput = document.getElementById(deleteInputId);
+        if (deleteInput) {
+          deleteInput.checked = true;
+        }
+        const formDiv = document.getElementById(formId);
+        if (formDiv) {
+          formDiv.remove();
+        }
+      }
+    });
+  </script>
+{% endblock %}
+
 
