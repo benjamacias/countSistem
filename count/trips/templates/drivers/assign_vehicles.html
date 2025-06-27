@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+<<<<<<< HEAD
 {% load static %}
 {% load custom_filters %}
 {% block content %}
@@ -42,4 +43,48 @@
   </div>
 </form>
 
+=======
+{% block title %}Asignar vehículos{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+          <h2 class="mb-4">Asignar vehículos a <strong>{{ driver.name }}</strong></h2>
+
+          {% if vehicles %}
+            <form method="post">
+              {% csrf_token %}
+
+              {% for vehicle in vehicles %}
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" name="vehicles" value="{{ vehicle.id }}"
+                         id="vehicle_{{ vehicle.id }}"
+                         {% if vehicle.driver_id == driver.id %}checked{% endif %}>
+                  <label class="form-check-label" for="vehicle_{{ vehicle.id }}">
+                    {{ vehicle.plate }} – {{ vehicle.description }}
+                  </label>
+                </div>
+              {% endfor %}
+
+              <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-check-circle me-1"></i> Guardar
+                </button>
+              </div>
+            </form>
+          {% else %}
+            <div class="alert alert-info">
+              No hay vehículos disponibles para asignar.
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+>>>>>>> 648306335a1db5ef862f5a2cb43259604fa76f24
 {% endblock %}

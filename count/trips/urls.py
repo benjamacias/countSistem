@@ -16,6 +16,8 @@ urlpatterns = [
     # Dashboard / inicio
     path("", TripListView.as_view(), name="trip_list"),
     path("ajax/get_vehicles_by_driver/", views.get_vehicles_by_driver, name="get_vehicles_by_driver"),
+    path("ajax/get_product_price/", views.get_product_price, name="get_product_price"),
+
 
     # Viajes
     path("trips/new/", TripCreateView.as_view(), name="trip_create"),
@@ -40,4 +42,9 @@ urlpatterns = [
     # Vehículos
     path("vehicles/", VehicleListView.as_view(), name="vehicles_list"),
     path("vehicles/new/", views.vehicle_create, name="vehicle_create"),
+
+    #Productos
+    path('productos/', views.product_list, name='product_list'),
+    path('productos/nuevo/', views.product_create, name='product_create'),
+    path('productos/<int:pk>/editar/', views.product_update, name='product_update'),
 ]

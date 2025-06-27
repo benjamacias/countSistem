@@ -1,11 +1,15 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Trip, TripAddress, Payment
-from .models import Client, Driver, Vehicle, Asesoramiento, Invoice
+from .models import Client, Driver, Vehicle, Asesoramiento, Invoice, Product, DriverAddress, DriverAdvance
 import re
 from django import forms
 from django.core.exceptions import ValidationError
 import logging
+from django.forms import modelformset_factory
+import datetime
+
+
 
 logger = logging.getLogger('app')
 
@@ -25,13 +29,15 @@ class TripForm(forms.ModelForm):
             'client': forms.Select(attrs={'class': 'form-select'}),
             'start_address': forms.TextInput(attrs={'class': 'form-control'}),
             'end_address': forms.TextInput(attrs={'class': 'form-control'}),
-            'products': forms.Textarea(attrs={'class': 'form-control'}),
             'departure_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'arrival_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'value': forms.NumberInput(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'driver': forms.Select(attrs={'class': 'form-select', 'id': 'id_driver'}),
             'vehicle': forms.Select(attrs={'class': 'form-select', 'id': 'id_vehicle'}),
+            'product': forms.Select(attrs={'class': 'form-select', 'id': 'id_product'}),
+            'total_weight': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_total_weight'}),
+            'value': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_value'}),
+
         }
     def __init__(self, *args, **kwargs):
         driver = kwargs.pop("driver", None)
@@ -51,7 +57,6 @@ class PaymentForm(forms.ModelForm):
         required=True
     )
 
-    # Campos para factura electrónica
     tipo_cbte = forms.ChoiceField(
         choices=[
             (1, "Factura A"),
@@ -61,6 +66,7 @@ class PaymentForm(forms.ModelForm):
         label="Tipo de Comprobante",
         required=True
     )
+
     punto_venta = forms.IntegerField(
         min_value=1,
         initial=1,
@@ -74,9 +80,9 @@ class PaymentForm(forms.ModelForm):
 
     class Meta:
         model = Payment
-        fields = ["method", "amount", "client", "tipo_cbte", "punto_venta", "generar_factura"]
+        fields = ["method", "amount"]
 
-    def save(self, commit=True):
+    def save(self, commit=True, trip=None):
         payment = super().save(commit=False)
 
         if self.cleaned_data.get("generar_factura"):
@@ -84,26 +90,27 @@ class PaymentForm(forms.ModelForm):
             tipo_cbte = self.cleaned_data["tipo_cbte"]
             punto_venta = self.cleaned_data["punto_venta"]
 
-            # Simulación de AFIP
-            cae = "71345678901234"
-            vencimiento_cae = "2025-06-10"
+            cae = "71345678901234"  # Simulación
+            vencimiento_cae = datetime.date(2025, 6, 10)
 
             invoice = Invoice.objects.create(
-                trip=self.trip,
+                trip=trip,
                 amount=payment.amount,
                 punto_venta=punto_venta,
                 tipo_cbte=tipo_cbte,
                 cae=cae,
-                cae_vencimiento=vencimiento_cae
+                cae_vencimiento=vencimiento_cae,
             )
+
             payment.invoice = invoice
 
         if commit:
             payment.save()
 
-            invoice = payment.invoice
-            logger.info(f"Factura creada: {invoice}")
-            logger.info(f"estado del viaje: {invoice.trip.status if invoice.trip else 'No hay viaje asociado'}")
+            if payment.invoice:
+                logger.info(f"Factura creada: {payment.invoice}")
+                if payment.invoice.trip:
+                    logger.info(f"Estado del viaje: {payment.invoice.trip.status}")
 
         return payment
 
@@ -149,23 +156,30 @@ class DriverForm(forms.ModelForm):
         queryset=Vehicle.objects.filter(driver__isnull=True),
         required=False,
         widget=forms.CheckboxSelectMultiple,
-        label="Vehículos a asignar"
+        label="Vehículos disponibles para asignar"
     )
 
     class Meta:
         model = Driver
-        fields = ["name", "surname", "dni", "gmail", "phone", "address", "license_number"]
+        fields = [
+            "name", "surname", "dni", "gmail", "phone",
+            "address", "license_number", "license_expiry"
+        ]
 
     def save(self, commit=True):
-        driver = super().save(commit=False)
-        if commit:
-            driver.save()
-            vehicles = self.cleaned_data.get("vehicles")
-            for vehicle in vehicles:
-                vehicle.driver = driver
-                vehicle.save()
+        driver = super().save(commit=commit)
+        # No asignamos vehículos acá — lo hacemos fuera del form (en la vista)
         return driver
 
+class DriverAdvanceForm(forms.ModelForm):
+    class Meta:
+        model = DriverAdvance
+        fields = ["category", "amount", "description"]
+
+class DriverAddressForm(forms.ModelForm):
+    class Meta:
+        model = DriverAddress
+        fields = ["address", "locality", "postal_code"]
 
 class VehicleInlineForm(forms.ModelForm):
     class Meta:
@@ -215,3 +229,24 @@ class AsesoramientoForm(forms.ModelForm):
         model = Asesoramiento
         fields = '__all__'
 
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ['name', 'price_per_kilo', 'volume', 'trailer_category', 'description']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
+
+DriverAddressFormSet = modelformset_factory(
+    DriverAddress,
+    form=DriverAddressForm,
+    extra=1,
+    can_delete=True
+)
+
+DriverAdvanceFormSet = modelformset_factory(
+    DriverAdvance,
+    form=DriverAdvanceForm,
+    extra=1,
+    can_delete=True
+)

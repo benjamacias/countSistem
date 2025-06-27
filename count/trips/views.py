@@ -4,9 +4,9 @@ from django.views.generic import ListView, CreateView, DetailView
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy
 from django.db import transaction
-from .models import Trip, Invoice, Client, Driver, Vehicle
+from .models import Trip, Invoice, Client, Driver, Vehicle, Product
 from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, AsesoramientoForm
-from .forms import DriverWithVehicleForm
+from .forms import DriverWithVehicleForm, ProductForm
 from django.contrib import messages
 from .models import Client, Asesoramiento
 from .forms import ClienteForm, AsesoramientoForm, AssignVehiclesForm
@@ -16,6 +16,11 @@ from django.db.models import Sum
 from django.db.models import Prefetch
 from django.db.models.functions import Concat
 from django.db.models import Value
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.template.loader import render_to_string
+from django.views.decorators.http import require_GET
+from django.views.decorators.csrf import csrf_exempt
+from .forms import DriverForm, DriverAddressFormSet, DriverAdvanceFormSet
 
 ADDRESS_PREFIX = "addresses" 
 
@@ -29,6 +34,20 @@ def get_vehicles_by_driver(request):
         for vehicle in vehicles
     ]
     return JsonResponse(data, safe=False)
+
+
+@require_GET
+@csrf_exempt
+def get_product_price(request):
+    from .models import Product
+    product_id = request.GET.get("product_id")
+    try:
+        product = Product.objects.get(id=product_id)
+        return JsonResponse({"price_per_kilo": float(product.price_per_kilo)})
+    except Product.DoesNotExist:
+        return JsonResponse({"error": "Producto no encontrado"}, status=404)
+
+
 
 @method_decorator(login_required, name="dispatch")
 class ClientListView(ListView):
@@ -130,6 +149,8 @@ class TripCreateView(CreateView):
     # -------- context --------
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["products"] = Product.objects.all()
+
         if self.request.POST:
             context["addresses"] = TripAddressFormSet(
                 self.request.POST,
@@ -174,15 +195,15 @@ class InvoiceDetailView(DetailView):
     template_name = "trips/invoice_detail.html"
     context_object_name = "invoice"
 
+
 @login_required
 def payment_create(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
-    paid = sum(p.amount for p in invoice.payments.all())  # ← uso de invoice.payments
-    remaining = invoice.amount - paid                     # ← amount, no total
+    paid = invoice.paid_total()
+    remaining = invoice.amount - paid
 
     if request.method == "POST":
-        form = PaymentForm(request.POST)
-        form = PaymentForm(initial={
+        form = PaymentForm(request.POST, initial={
             "client": invoice.trip.client if invoice.trip else None
         })
         if form.is_valid():
@@ -193,24 +214,27 @@ def payment_create(request, pk):
                 payment = form.save(commit=False)
                 payment.invoice = invoice
                 payment.save()
-                
-                if invoice and invoice.trip and invoice.remaining() <= 0:
-                    print("Factura pagada completamente, actualizando estado del viaje...")
+
+                # Si el monto pagado cubre el total de la factura, actualizamos estado del viaje
+                if invoice.trip and invoice.remaining() <= 0:
                     invoice.trip.status = "facturado"
                     invoice.trip.save()
 
                 return redirect("trips:invoice_detail", invoice.id)
     else:
-        form = PaymentForm()
         form = PaymentForm(initial={
             "client": invoice.trip.client if invoice.trip else None
         })
+
     return render(
         request,
         "trips/payment_form.html",
-        {"form": form, "invoice": invoice, "remaining": remaining},
+        {
+            "form": form,
+            "invoice": invoice,
+            "remaining": remaining,
+        }
     )
-
 
 @login_required
 def client_create(request):
@@ -248,13 +272,43 @@ def vehicle_create(request):
 @login_required
 def driver_create(request):
     if request.method == "POST":
-        form = DriverWithVehicleForm(request.POST)
-        if form.is_valid():
-            form.save()
+        form = DriverForm(request.POST)
+        address_formset = DriverAddressFormSet(request.POST, prefix="address")
+        advance_formset = DriverAdvanceFormSet(request.POST, prefix="advance")
+
+        if form.is_valid() and address_formset.is_valid() and advance_formset.is_valid():
+            driver = form.save()
+
+            # Guardar direcciones
+            addresses = address_formset.save(commit=False)
+            for addr in addresses:
+                addr.driver = driver
+                addr.save()
+
+            # Guardar adelantos
+            advances = advance_formset.save(commit=False)
+            for adv in advances:
+                adv.driver = driver
+                adv.save()
+
+            # Asignar vehículos (solo si estaban disponibles)
+            vehicles = form.cleaned_data.get("vehicles")
+            for v in vehicles:
+                if v.driver is None:
+                    v.driver = driver
+                    v.save()
+
             return redirect("trips:drivers_list")
     else:
-        form = DriverWithVehicleForm()
-    return render(request, "drivers/driver_form.html", {"form": form})
+        form = DriverForm()
+        address_formset = DriverAddressFormSet(prefix="address")
+        advance_formset = DriverAdvanceFormSet(prefix="advance")
+
+    return render(request, "drivers/driver_form.html", {
+        "form": form,
+        "address_formset": address_formset,
+        "advance_formset": advance_formset,
+    })
 
 @method_decorator(login_required, name="dispatch")
 class InvoiceListView(ListView):
@@ -382,3 +436,38 @@ def assign_vehicles(request, driver_id):
         "driver": driver,
         "vehicles": vehicles,
     })
+
+def product_list(request):
+    products = Product.objects.all()
+    forms = {p.id: ProductForm(instance=p) for p in products}
+    return render(request, 'products/product_list.html', {'products': products,'forms': forms,})
+
+
+def product_update(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    form = ProductForm(request.POST or None, instance=product)
+
+    if request.method == "POST":
+        if form.is_valid():
+            form.save()
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"success": True})
+            return redirect('trips:product_list')
+        else:
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                html = render_to_string('products/product_update_inline.html', {'form': form, 'product': product}, request=request)
+                return HttpResponseBadRequest(html)
+
+    return render(request, 'products/product_update_inline.html', {'form': form, 'product': product})
+
+
+def product_create(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('trips:product_list')
+    else:
+        form = ProductForm()
+    return render(request, 'products/product_form.html', {'form': form})
+

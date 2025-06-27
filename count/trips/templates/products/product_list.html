@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+{% load dict_extras %}
+
+{% block content %}
+<h2>Productos</h2>
+
+<ul class="list-group" id="product-list">
+  {% for product in products %}
+    <li class="list-group-item list-group-item-action"
+        data-bs-toggle="modal"
+        data-bs-target="#productModal{{ product.id }}"
+        style="cursor: pointer;">
+      <strong>{{ product.name }}</strong> – ${{ product.price_per_kilo }} – {{ product.trailer_category_display }}
+    </li>
+
+    <!-- Modal para editar producto -->
+    <div class="modal fade" id="productModal{{ product.id }}" tabindex="-1" aria-labelledby="productModalLabel{{ product.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="productModalLabel{{ product.id }}">Editar producto: {{ product.name }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <form method="post" action="{% url 'trips:product_update' product.id %}" class="product-update-form" data-product-id="{{ product.id }}">
+              {% csrf_token %}
+              {% with form=forms|dict_get:product.id %}
+                {% for field in form %}
+                  <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {% render_field field class="form-control" %}
+                    {% for error in field.errors %}
+                      <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              {% endwith %}
+              <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <li class="list-group-item text-muted">No hay productos cargados.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  // Envía formulario sin recargar toda la página (opcional)
+  $(function () {
+    $('.product-update-form').on('submit', function (e) {
+      e.preventDefault();
+      let $form = $(this);
+      let productId = $form.data('product-id');
+      let modal = $form.closest('.modal');
+
+      $.ajax({
+        type: $form.attr('method'),
+        url: $form.attr('action'),
+        data: $form.serialize(),
+        success: function (response) {
+          modal.modal('hide');
+          location.reload();  // recarga para actualizar lista
+        },
+        error: function (xhr) {
+          $form.replaceWith(xhr.responseText);
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}
