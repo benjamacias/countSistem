@@ -27,7 +27,7 @@ urlpatterns = [
     
     # Viajes
     path("trips/new/", views.TripCreateView.as_view(), name="trip_create"),
-
+   
     # App principal (trips.urls)
     path("", include("trips.urls")),
 ]

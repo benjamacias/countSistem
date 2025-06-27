@@ -1,0 +1,22 @@
+{% load widget_tweaks %}
+
+<form method="post" class="product-update-form" action="{% url 'trips:product_update' product.id %}" data-product-id="{{ product.id }}">
+  {% csrf_token %}
+  {% for field in form %}
+    <div class="mb-3">
+      <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+      {% render_field field class="form-control" %}
+      {% if field.help_text %}
+        <div class="form-text">{{ field.help_text }}</div>
+      {% endif %}
+      {% for error in field.errors %}
+        <div class="text-danger small">{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+
+  <div class="d-flex justify-content-end">
+    <button type="submit" class="btn btn-primary">Guardar</button>
+  </div>
+</form>
+

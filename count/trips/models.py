@@ -58,6 +58,37 @@ class Asesoramiento(models.Model):
     def __str__(self):
         return f"Asesoramiento de {self.cliente}"
 
+class Product(models.Model):
+    class TrailerType(models.TextChoices):
+        FLATBED = "flatbed", "Remolque de plataforma (Flatbed)"
+        DRY_VAN = "dry_van", "Remolque cerrado (Dry Van)"
+        REEFER = "reefer", "Remolque refrigerado (Reefer)"
+        TANKER = "tanker", "Remolque cisterna (Tanker)"
+        TAUTLINER = "tautliner", "Remolque de lona (Tautliner)"
+        CHASSIS = "chassis", "Remolque portacontenedores (Chassis)"
+        LOWBOY = "lowboy", "Remolque Lowboy (Cama baja)"
+        HOPPER = "hopper", "Remolque tolva (Hopper)"
+        LIVESTOCK = "livestock", "Remolque jaula (Livestock trailer)"
+        CAR_CARRIER = "car_carrier", "Remolque de automóviles (Car carrier)"
+        DUMP_TRAILER = "dump_trailer", "Remolque basculante (Dump trailer)"
+
+    name = models.CharField("Nombre", max_length=100)
+    price_per_kilo = models.DecimalField("Precio por kilo", max_digits=10, decimal_places=2)
+    volume = models.DecimalField("Volumen (m³)", max_digits=10, decimal_places=2)
+    trailer_category = models.CharField(
+        "Tipo de remolque necesario",
+        max_length=20,
+        choices=TrailerType.choices
+    )
+    description = models.TextField("Descripción", blank=True)
+
+    def __str__(self):
+        return self.name
+    
+    @property
+    def trailer_category_display(self):
+        return self.get_trailer_category_display()
+    
 
 class Driver(models.Model):
     name = models.CharField(max_length=120)
@@ -66,11 +97,37 @@ class Driver(models.Model):
     gmail = models.EmailField(max_length=254, unique=True, blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     address = models.CharField(max_length=255, blank=True, null=True)
-    license_number = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Número de licencia del conductor", )
+    license_number = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Número de licencia del conductor")
+    license_expiry = models.DateField("Vencimiento de licencia", blank=True, null=True)
+
     def __str__(self):
-        return self.name
+        return f"{self.name} {self.surname or ''}"
+
+class DriverAddress(models.Model):
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name="addresses")
+    address = models.CharField("Dirección", max_length=255)
+    locality = models.CharField("Localidad", max_length=100)
+    postal_code = models.CharField("Código Postal", max_length=20)
+
+    def __str__(self):
+        return f"{self.address}, {self.locality}"
         
-    
+class DriverAdvance(models.Model):
+    class AdvanceCategory(models.TextChoices):
+        TOLL = "peaje", "Peaje"
+        FUEL = "combustible", "Combustible"
+        OTHER = "otro", "Otro"
+
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name="advances")
+    category = models.CharField("Categoría", max_length=20, choices=AdvanceCategory.choices)
+    amount = models.DecimalField("Monto", max_digits=10, decimal_places=2)
+    date = models.DateField("Fecha", auto_now_add=True)
+    description = models.TextField("Descripción", blank=True)
+
+    def __str__(self):
+        return f"{self.get_category_display()} - ${self.amount} ({self.date})"
+
+
 class Vehicle(models.Model):
     plate = models.CharField("Patente", max_length=15, unique=True, validators=[validate_plate])
     description = models.CharField(max_length=120, blank=True)
@@ -93,10 +150,9 @@ class Trip(models.Model):
     client = models.ForeignKey(Client, on_delete=models.PROTECT)
     driver = models.ForeignKey(Driver, on_delete=models.PROTECT)
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True)
-
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
     start_address = models.CharField(max_length=255)
     end_address = models.CharField(max_length=255)
-    products = models.TextField(blank=True)
     total_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     value = models.DecimalField("Valor del viaje", max_digits=12, decimal_places=2)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default="pendiente")
@@ -158,14 +214,14 @@ class Payment(models.Model):
         ("cheque", "Cheque"),
         ("retencion", "Retención"),
         ("otro", "Otro"),
-    
     ]
-    invoice = models.ForeignKey(Invoice, related_name="payments", on_delete=models.CASCADE)
+
+    invoice = models.ForeignKey(Invoice, related_name="payments", on_delete=models.CASCADE, null=True, blank=True)
     method = models.CharField(max_length=20, choices=METHOD_CHOICES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     paid_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.method} - ${self.amount}"
-    
+
 

@@ -1,31 +1,72 @@
 {% extends "base.html" %}
-{% block title %}Registrar pago{% endblock %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Registrar Pago{% endblock %}
 
 {% block content %}
-<h3>Factura para Viaje #{{ invoice.trip.id|stringformat:"05d" }}</h3>
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+
+      <h3 class="mb-4 text-center">
+        Pago para Factura de Viaje #{{ invoice.trip.id|stringformat:"05d" }}
+      </h3>
+
+      <div class="alert alert-info text-center">
+        <strong>Importe restante:</strong> ${{ remaining }}
+      </div>
+
+      <form method="post" class="card shadow-sm p-4 bg-light border-0 rounded">
+        {% csrf_token %}
+        {% for field in form %}
+        {% if field.field.widget.input_type == "checkbox" %}
+          <div class="form-check mb-3">
+            {% render_field field class="form-check-input" id=field.auto_id %}
+            <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% for error in field.errors %}
+              <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="mb-3">
+            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+            {% render_field field class="form-control" %}
+            {% for error in field.errors %}
+              <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
 
 
-<p><strong>Restante:</strong> ${{ remaining }}</p>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+          <button type="button" class="btn btn-outline-primary" onclick="setRemaining()">
+            <i class="bi bi-cash-coin me-1"></i> Pagar restante
+          </button>
 
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-circle me-1"></i> Guardar pago
+            </button>
+            <a href="{% url 'trips:invoice_detail' invoice.id %}" class="btn btn-secondary">
+              Cancelar
+            </a>
+          </div>
+        </div>
+      </form>
 
-  <button type="button"
-          class="btn btn-outline-info mb-2"
-          onclick="setRemaining()">Pagar restante</button>
-
-  <button class="btn btn-success">Guardar pago</button>
-  <a class="btn btn-secondary" href="{% url 'trips:invoice_detail' invoice.id %}">Cancelar</a>
-</form>
+    </div>
+  </div>
+</div>
 
 <script>
-function setRemaining() {
-  const remainingAmount = parseFloat("{{ remaining|floatformat:2|safe }}");
-  const input = document.querySelector('input[name="amount"]');
-  if (input && !isNaN(remainingAmount)) {
-    input.value = remainingAmount;
+  function setRemaining() {
+    const remainingAmount = parseFloat("{{ remaining|floatformat:2|safe }}");
+    const input = document.querySelector('input[name="amount"]');
+    if (input && !isNaN(remainingAmount)) {
+      input.value = remainingAmount;
+    }
   }
-}
 </script>
 {% endblock %}
