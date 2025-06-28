@@ -11,6 +11,7 @@ from .views import (
     driver_edit,
     DriverAdvanceCreateView,
     DriverAdvanceListView
+    
 )
 
 app_name = "trips"
@@ -37,6 +38,7 @@ urlpatterns = [
     # Clientes
     path("clients/", ClientListView.as_view(), name="clients_list"),
     path("clients/new/", views.client_create, name="client_create"),
+    path("clientes/<int:pk>/editar/", views.client_update, name="client_update"),
     path("clients/<int:cliente_id>/asesoramiento/", views.asesoramiento_create, name="asesoramiento_create"),
 
     # Conductores

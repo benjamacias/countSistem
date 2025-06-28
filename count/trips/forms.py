@@ -119,6 +119,21 @@ class ClientForm(forms.ModelForm):
         model = Client
         fields = '__all__'  # O pon los campos específicos que quieras
 
+class ClientForm(forms.ModelForm):
+    class Meta:
+        model = Client
+        fields = ["nombre", "apellido", "dni", "gmail", "domicilio", "telefono", "cuit", "tipo_iva"]
+        widgets = {
+            "nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "apellido": forms.TextInput(attrs={"class": "form-control"}),
+            "dni": forms.NumberInput(attrs={"class": "form-control"}),
+            "gmail": forms.EmailInput(attrs={"class": "form-control"}),
+            "domicilio": forms.TextInput(attrs={"class": "form-control"}),
+            "telefono": forms.TextInput(attrs={"class": "form-control"}),
+            "cuit": forms.TextInput(attrs={"class": "form-control"}),
+            "tipo_iva": forms.Select(attrs={"class": "form-select"}),
+        }
+
 class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle

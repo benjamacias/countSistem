@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Clientes{% endblock %}
-{% block content %}
 
+{% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="mb-0">Listado de Clientes</h2>
   <a class="btn btn-success" href="{% url 'client_create' %}">
@@ -15,75 +15,128 @@
       <tr>
         <th scope="col">Nombre</th>
         <th scope="col">DNI</th>
-        <th scope="col">Asesoramientos</th>
+        <th scope="col">Asesoramientos / Acciones</th>
       </tr>
     </thead>
-<tbody>
-  {% for cliente in clients %}
-  <tr data-bs-toggle="modal" data-bs-target="#clienteModal{{ cliente.id }}" style="cursor: pointer;">
-    <td>{{ cliente.nombre }} {{ cliente.apellido }}</td>
-    <td>{{ cliente.dni }}</td>
-    <td>
-      {% if cliente.asesoramientos.exists %}
-        {% for a in cliente.asesoramientos.all %}
-          <div class="mb-1">
-            <span class="fw-semibold text-primary">{{ a.tipo }}:</span> {{ a.asesoramiento }}
-          </div>
-        {% endfor %}
-      {% else %}
-        <span class="text-muted">Sin asesoramientos</span>
-      {% endif %}
-      <div class="text-end mt-2">
-        <a href="{% url 'asesoramiento_create' cliente.id %}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();">
-          <i class="bi bi-plus-circle me-1"></i> Agregar
-        </a>
-      </div>
-    </td>
-  </tr>
-
-  <!-- Modal del cliente -->
-  <div class="modal fade" id="clienteModal{{ cliente.id }}" tabindex="-1" aria-labelledby="clienteModalLabel{{ cliente.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="clienteModalLabel{{ cliente.id }}">Cliente: {{ cliente.nombre }} {{ cliente.apellido }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <p><strong>DNI:</strong> {{ cliente.dni }}</p>
-          <p><strong>Email:</strong> {{ cliente.gmail }}</p>
-          <p><strong>Dirección:</strong> {{ cliente.domicilio }}</p>
-          <p><strong>Teléfono:</strong> {{ cliente.telefono }}</p>
-          <p><strong>cuit:</strong> {{ cliente.cuit }}</p>
-          <p><strong>Tipo IVA:</strong>{{ cliente.tipo_iva }}</p>
-          <p>Total facturado: ${{ cliente.total_facturado }}</p>
-          <p>Total pagado: ${{ cliente.total_pagado }}</p>
-          <p>Restante: ${{ cliente.total_restante }}</p>
-          <hr>
-          <h6 class="fw-bold">Asesoramientos</h6>
-          {% if cliente.asesoramientos.exists %}
-            <ul>
+    <tbody>
+      {% for cliente in clients %}
+        <tr data-bs-toggle="modal" data-bs-target="#clienteModal{{ cliente.id }}" style="cursor: pointer;">
+          <td class="text-nowrap">{{ cliente.nombre }} {{ cliente.apellido }}</td>
+          <td class="text-nowrap">{{ cliente.dni }}</td>
+          <td>
+            {% if cliente.asesoramientos.exists %}
               {% for a in cliente.asesoramientos.all %}
-                <li><strong>{{ a.tipo }}</strong>: {{ a.asesoramiento }}</li>
+                <div class="mb-1">
+                  <span class="fw-semibold text-primary">{{ a.tipo }}:</span> {{ a.asesoramiento }}
+                </div>
               {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted">No tiene asesoramientos registrados.</p>
-          {% endif %}
-          <a href="{% url 'trips:trip_list' %}?q={{ cliente.nombre }}+{{ cliente.apellido }}" class="btn btn-outline-dark btn-sm mt-2">
-            <i class="bi bi-search me-1"></i> Ver viajes
-          </a>
+            {% else %}
+              <span class="text-muted">Sin asesoramientos</span>
+            {% endif %}
 
+            <!-- Acciones -->
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <a href="{% url 'asesoramiento_create' cliente.id %}"
+                 class="btn btn-sm btn-outline-primary"
+                 onclick="event.stopPropagation();">
+                <i class="bi bi-plus-circle me-1"></i> Asesoramiento
+              </a>
+              <a href="{% url 'trips:client_update' cliente.id %}"
+                 class="btn btn-sm btn-outline-secondary"
+                 onclick="event.stopPropagation();">
+                <i class="bi bi-pencil me-1"></i> Editar
+              </a>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Modal del cliente -->
+        <div class="modal fade" id="clienteModal{{ cliente.id }}" tabindex="-1"
+             aria-labelledby="clienteModalLabel{{ cliente.id }}" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="clienteModalLabel{{ cliente.id }}">
+                  Cliente: {{ cliente.nombre }} {{ cliente.apellido }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <p><strong>DNI:</strong> {{ cliente.dni }}</p>
+                <p><strong>Email:</strong> {{ cliente.gmail }}</p>
+                <p><strong>Dirección:</strong> {{ cliente.domicilio }}</p>
+                <p><strong>Teléfono:</strong> {{ cliente.telefono }}</p>
+                <p><strong>CUIT:</strong> {{ cliente.cuit }}</p>
+                <p><strong>Tipo IVA:</strong> {{ cliente.tipo_iva }}</p>
+                <hr>
+                <p><strong>Total facturado:</strong> ${{ cliente.total_facturado }}</p>
+                <p><strong>Total pagado:</strong> ${{ cliente.total_pagado }}</p>
+                <p><strong>Restante:</strong> ${{ cliente.total_restante }}</p>
+
+                <hr>
+                <h6 class="fw-bold">Asesoramientos</h6>
+                {% if cliente.asesoramientos.exists %}
+                  <ul class="mb-0">
+                    {% for a in cliente.asesoramientos.all %}
+                      <li><strong>{{ a.tipo }}</strong>: {{ a.asesoramiento }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="text-muted">No tiene asesoramientos registrados.</p>
+                {% endif %}
+
+                <a href="{% url 'trips:trip_list' %}?q={{ cliente.nombre }}+{{ cliente.apellido }}"
+                   class="btn btn-outline-dark btn-sm mt-3">
+                  <i class="bi bi-search me-1"></i> Ver viajes
+                </a>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-</tbody>
+      {% endfor %}
+    </tbody>
   </table>
-</div>
 
+     <!-- Paginación -->
+{% if is_paginated %}
+<nav aria-label="Paginación de facturas">
+  <ul class="pagination justify-content-center mt-4">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+          <span aria-hidden="true">&laquo;</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&laquo;</span>
+      </li>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="page-item"><a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+          <span aria-hidden="true">&raquo;</span>
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&raquo;</span>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+</div>
 {% endblock %}

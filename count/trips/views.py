@@ -8,9 +8,11 @@ from .models import Trip, Invoice, Client, Driver, Vehicle, Product
 from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, AsesoramientoForm
 from .forms import DriverWithVehicleForm, ProductForm
 from django.contrib import messages
+from django.core.paginator import Paginator
 from .models import Client, Asesoramiento
 from .forms import ClienteForm, AsesoramientoForm, AssignVehiclesForm
 from django.http import JsonResponse
+from django.utils.http import urlencode
 from django.db.models import Q
 from django.db.models import Sum
 from django.db.models import Prefetch
@@ -252,6 +254,19 @@ class ClientListView(ListView):
     model = Client
     template_name = "clients/client_list.html"
     context_object_name = "clients"
+    paginate_by = 6
+
+def client_update(request, pk):
+    cliente = get_object_or_404(Client, pk=pk)
+    if request.method == "POST":
+        form = ClientForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            return redirect("clients_list")  # o a donde quieras volver
+    else:
+        form = ClientForm(instance=cliente)
+
+    return render(request, "clients/client_edit.html", {"form": form, "cliente": cliente})
 
 def asesoramiento_create(request, cliente_id):
     cliente = get_object_or_404(Client, id=cliente_id)
@@ -271,6 +286,7 @@ class DriverListView(ListView):
     model = Driver
     template_name = "drivers/driver_list.html"
     context_object_name = "drivers"
+    paginate_by = 6
 
     def drivers_list(request):
         drivers = Driver.objects.prefetch_related('vehicle_set').all()
@@ -384,7 +400,18 @@ class DriverAdvanceListView(ListView):
     model = DriverAdvance
     template_name = "advances/advance_list.html"
     context_object_name = "advances"
-    ordering = ['-date']
+    paginate_by = 6
+
+    def get_ordering(self):
+        orden = self.request.GET.get("orden", "-date")
+        return orden
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["current_orden"] = self.request.GET.get("orden", "-date")
+        context["params"] = urlencode({k: v for k, v in self.request.GET.items() if k != 'page'})
+        return context
+    
 
 @method_decorator(login_required, name="dispatch")
 class InvoiceListView(ListView):
@@ -501,9 +528,22 @@ def assign_vehicles(request, driver_id):
     })
 
 def product_list(request):
-    products = Product.objects.all()
-    forms = {p.id: ProductForm(instance=p) for p in products}
-    return render(request, 'products/product_list.html', {'products': products,'forms': forms,})
+    product_queryset = Product.objects.all().order_by("id")
+    paginator = Paginator(product_queryset, 2)  # ← 2 productos por página
+
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    # Creamos un diccionario con formularios por producto
+    forms = {product.id: ProductForm(instance=product) for product in page_obj}
+
+    context = {
+        "products": page_obj,
+        "forms": forms,
+        "page_obj": page_obj,  # para usar en la paginación del template
+        "is_paginated": page_obj.has_other_pages(),
+    }
+    return render(request, "products/product_list.html", context)
 
 
 def product_update(request, pk):
