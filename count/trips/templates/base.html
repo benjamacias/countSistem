@@ -140,23 +140,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-  document.addEventListener("DOMContentLoaded", function () {
-    const addBtn = document.getElementById("add-address-btn");
-    const formContainer = document.getElementById("address-forms");
-    const totalForms = document.getElementById("id_addresses-TOTAL_FORMS");
-    const emptyFormTemplate = document.querySelector("#empty-form-template tr");
-
-    addBtn.addEventListener("click", function () {
-      const formCount = parseInt(totalForms.value);
-      const newFormHtml = emptyFormTemplate.outerHTML.replace(/__prefix__/g, formCount);
-      const temp = document.createElement("tbody");
-      temp.innerHTML = newFormHtml;
-      formContainer.appendChild(temp.firstElementChild);
-      totalForms.value = formCount + 1;
-    });
-  });
-
-
 
 </script>
 

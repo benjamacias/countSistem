@@ -2,6 +2,8 @@
 {% load static %}
 {% block title %}Nuevo viaje{% endblock %}
 {% block content %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
+
 
 <h3>Nuevo viaje</h3>
 <form method="post">
@@ -74,8 +76,58 @@
 </form>
 
 {% endblock %}
-
-
-{% block scripts %}
+ {% block scripts %}
   {{ block.super }}
+  <script>
+    let autocompleteFields = [];
+
+    function initAutocomplete() {
+      const startInput = document.getElementById("id_start_address");
+      const endInput = document.getElementById("id_end_address");
+
+      if (startInput) autocompleteFields.push(new google.maps.places.Autocomplete(startInput, { types: ['geocode'] }));
+      if (endInput) autocompleteFields.push(new google.maps.places.Autocomplete(endInput, { types: ['geocode'] }));
+
+      document.querySelectorAll("input[name$='-address']").forEach(input => {
+        autocompleteFields.push(new google.maps.places.Autocomplete(input, { types: ['geocode'] }));
+      });
+    }
+
+    function applyAutocompleteToNewAddress(wrapper) {
+      const input = wrapper.querySelector("input[name$='-address']");
+      if (input) {
+        setTimeout(() => {
+          autocompleteFields.push(new google.maps.places.Autocomplete(input, { types: ['geocode'] }));
+        }, 50); // Esperar que el campo se renderice en el DOM
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      initAutocomplete();
+
+      const addBtn = document.getElementById("add-address-btn");
+      const formsContainer = document.getElementById("address-forms");
+      const emptyTemplate = document.getElementById("empty-form-template").innerHTML;
+      const totalForms = document.getElementById("id_addresses-TOTAL_FORMS");
+
+      if (!addBtn.dataset.listenerAdded) {
+        addBtn.dataset.listenerAdded = "true";
+
+        addBtn.addEventListener("click", function () {
+          const formIndex = parseInt(totalForms.value);
+          const newFormHtml = emptyTemplate.replace(/__prefix__/g, formIndex);
+          const temp = document.createElement("tbody");
+          temp.innerHTML = newFormHtml;
+          const newRow = temp.querySelector(".address-form");
+
+          formsContainer.appendChild(newRow);
+          totalForms.value = formIndex + 1;
+
+          applyAutocompleteToNewAddress(newRow);
+        });
+      }
+    });
+  </script>
 {% endblock %}
+
+

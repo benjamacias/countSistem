@@ -1,9 +1,12 @@
 # Ignore data files
 *.csv
-.key
-.csr
-.crt
-.key.pem
+*.key
+*.csr
+*.crt
+*.cms
+request.wsaa.xml
+token_wsfe.xml
+*.pem
 .csr.pem
 db.sqlite3
 settings.py
@@ -41,3 +44,10 @@ count/request.csr
 count/solicitar_cae.py
 env/Lib/site-packages/asgiref-3.8.1.dist-info/METADATA
 env/Lib/site-packages/certifi/cacert.pem
+factura_afip.py
+solicitar_cae2.py
+token.xml   
+TRA_signed.cms
+TRA_decoded.xml
+TRA.tmp
+TRA.xml

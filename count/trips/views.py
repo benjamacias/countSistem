@@ -26,6 +26,8 @@ from .forms import DriverForm, DriverAddressFormSet, DriverAdvanceFormSet, Drive
 from django.http import HttpResponse
 from django.views.generic.edit import UpdateView
 from .models import Driver, Vehicle, DriverAddress, DriverAdvance
+from django.conf import settings
+
 ADDRESS_PREFIX = "addresses" 
 
 
@@ -152,6 +154,7 @@ class TripCreateView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["products"] = Product.objects.all()
+        context["google_maps_api_key"] = settings.GOOGLE_MAPS_API_KEY  # ← clave segura
 
         if self.request.POST:
             context["addresses"] = TripAddressFormSet(
@@ -163,7 +166,6 @@ class TripCreateView(CreateView):
                 prefix=ADDRESS_PREFIX
             )
         return context
-
     # -------- guardar --------
     def form_valid(self, form):
         context = self.get_context_data()
@@ -186,9 +188,16 @@ class TripCreateView(CreateView):
 @login_required
 def trip_complete(request, pk):
     trip = get_object_or_404(Trip, pk=pk)
-    trip.status = "recibido"
-    trip.save()
-    invoice, created = Invoice.objects.get_or_create(trip=trip, defaults={"amount": trip.value})
+
+    if trip.status != "recibido":
+        trip.status = "recibido"
+        trip.save()
+
+    invoice, created = Invoice.objects.get_or_create(
+        trip=trip,
+        defaults={"amount": trip.value}
+    )
+    
     return redirect("trips:invoice_detail", pk=invoice.id)
 
 @method_decorator(login_required, name="dispatch")
