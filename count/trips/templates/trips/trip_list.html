@@ -118,7 +118,7 @@
           <p><strong>Vehículo:</strong> {{ t.vehicle }}</p>
           <p><strong>Origen:</strong> {{ t.start_address }}</p>
           <p><strong>Destino:</strong> {{ t.end_address }}</p>
-          <p><strong>Productos:</strong> {{ t.products }}</p>
+          <p><strong>Productos:</strong> {{ t.product }}</p>
 
           {% if t.addresses.exists %}
             <hr>
@@ -129,7 +129,17 @@
               {% endfor %}
             </ul>
           {% endif %}
-
+          <hr>
+          {% if t.status == 'recibido' %}
+            <p><strong>Kilos recibidos:</strong></p>
+            <ul>
+              <li>{{ t.received_weight }} kg</li>
+            </ul>
+            <p><strong>Kilos perdidos:</strong></p>
+            <ul>
+              <li>{{ t.delivered_weight }} kg</li>
+            </ul>
+          {% endif %}
           <hr>
           <p><strong>Estado:</strong> {{ t.get_status_display }}</p>
           <p><strong>Valor:</strong> ${{ t.value }}</p>
@@ -148,25 +158,56 @@
     </div>
   </div>
 
-  <!-- Modal de confirmación "Ingresar" -->
-  <div class="modal fade" id="confirmModal{{ t.id }}" tabindex="-1" aria-labelledby="confirmModalLabel{{ t.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Confirmar ingreso del viaje #{{ t.id }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Modal de confirmación "Ingresar" -->
+<div class="modal fade" id="confirmModal{{ t.id }}" tabindex="-1" aria-labelledby="confirmModalLabel{{ t.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <form method="post" action="{% url 'trips:trip_complete' t.id %}">
+        {% csrf_token %}
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="confirmModalLabel{{ t.id }}">
+            <i class="bi bi-check-circle-fill me-2"></i>Ingreso de Viaje #{{ t.id|stringformat:"05d" }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
+
         <div class="modal-body">
-          ¿Confirmás que el viaje fue recibido correctamente?
+          <p class="mb-3">
+            ¿Confirmás que el viaje fue recibido correctamente?
+          </p>
+
+          <div class="alert alert-info small">
+            <i class="bi bi-truck"></i> Peso originalmente registrado: 
+            <strong>{{ t.total_weight }} kg</strong>
+          </div>
+
+          <div class="mb-3">
+            <label for="kilos_recibidos_{{ t.id }}" class="form-label fw-semibold">
+              <i class="bi bi-box-seam me-1"></i> Kilos efectivamente recibidos
+            </label>
+            <input type="number"
+                  step="0.01"
+                  min="0"
+                  name="received_weight"
+                  id="kilos_recibidos_{{ t.id }}"
+                  class="form-control"
+                  required
+                  placeholder="Ej: {{ t.total_weight }}">
+          </div>
         </div>
+
         <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <a href="{% url 'trips:trip_complete' t.id %}" class="btn btn-primary">Confirmar</a>
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle me-1"></i> Confirmar ingreso
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
-
+</div>
 
   <!-- Modal de confirmación "Cancelar" -->
   <div class="modal fade" id="cancelModal{{ t.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ t.id }}" aria-hidden="true">

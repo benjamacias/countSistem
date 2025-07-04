@@ -70,77 +70,69 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-
 document.addEventListener("DOMContentLoaded", function () {
+
+  // --------- PRECIO POR KILO Y CÁLCULO DE VALOR ---------
   let pricePerKilo = 0;
 
+  const productInput = document.getElementById("id_product");
+  const weightInput = document.getElementById("id_total_weight");
+  const valueInput = document.getElementById("id_value");
+
   function calcularValorTotal() {
-    const peso = parseFloat(document.getElementById("id_total_weight").value) || 0;
+    const peso = parseFloat(weightInput.value) || 0;
     const total = (peso * pricePerKilo).toFixed(2);
-    document.getElementById("id_value").value = total;
+    valueInput.value = total;
   }
 
   function cargarPrecioProducto() {
-    const productId = document.getElementById("id_product").value;
+    const productId = productInput.value;
     if (!productId) return;
 
     fetch(`/ajax/get_product_price/?product_id=${productId}`)
-      .then(response => response.json())
+      .then(res => res.json())
       .then(data => {
         pricePerKilo = parseFloat(data.price_per_kilo) || 0;
         calcularValorTotal();
-      });
+      })
+      .catch(err => console.error("Error al obtener precio:", err));
   }
 
-  document.getElementById("id_product").addEventListener("change", cargarPrecioProducto);
-  document.getElementById("id_total_weight").addEventListener("input", calcularValorTotal);
+  productInput?.addEventListener("change", cargarPrecioProducto);
+  weightInput?.addEventListener("input", calcularValorTotal);
 
-  // Cargar el precio si ya hay producto seleccionado al cargar
-  if (document.getElementById("id_product").value) {
-    cargarPrecioProducto();
+  if (productInput?.value) {
+    cargarPrecioProducto(); // Autocarga si ya hay valor seleccionado
   }
+
+  // --------- VEHÍCULOS POR CONDUCTOR DINÁMICAMENTE ---------
+  const driverSelect = document.getElementById("id_driver");
+  const vehicleSelect = document.getElementById("id_vehicle");
+
+  driverSelect?.addEventListener("change", function () {
+    const driverId = this.value;
+    if (!driverId) return;
+
+    fetch(`/ajax/get_vehicles_by_driver/?driver_id=${driverId}`)
+      .then(res => res.json())
+      .then(data => {
+        vehicleSelect.innerHTML = ""; // Reset
+
+        if (data.length === 0) {
+          const opt = new Option("No hay vehículos disponibles", "", false, true);
+          opt.disabled = true;
+          vehicleSelect.appendChild(opt);
+        } else {
+          data.forEach((vehicle, index) => {
+            const opt = new Option(`${vehicle.plate} - ${vehicle.description}`, vehicle.id, index === 0, index === 0);
+            vehicleSelect.appendChild(opt);
+          });
+        }
+      })
+      .catch(err => console.error("Error al cargar vehículos:", err));
+  });
+
 });
-
-
-document.addEventListener("DOMContentLoaded", function () {
-    const driverSelect = document.getElementById("id_driver");
-    const vehicleSelect = document.getElementById("id_vehicle");
-
-    driverSelect.addEventListener("change", function () {
-        const driverId = this.value;
-        if (!driverId) return;
-
-        fetch(`/ajax/get_vehicles_by_driver/?driver_id=${driverId}`)
-            .then(response => response.json())
-            .then(data => {
-                vehicleSelect.innerHTML = ""; // Limpiar opciones
-
-                if (data.length === 0) {
-                    const option = document.createElement("option");
-                    option.textContent = "No hay vehículos disponibles";
-                    option.disabled = true;
-                    option.selected = true;
-                    vehicleSelect.appendChild(option);
-                    return;
-                }
-
-                data.forEach((vehicle, index) => {
-                    const option = document.createElement("option");
-                    option.value = vehicle.id;
-                    option.textContent = `${vehicle.plate} - ${vehicle.description}`;
-                    if (index === 0) {
-                        option.selected = true;
-                    }
-                    vehicleSelect.appendChild(option);
-                });
-            })
-            .catch(error => {
-                console.error("Error al cargar vehículos:", error);
-            });
-    });
-});
-
-
 </script>
 
 {% endblock %}

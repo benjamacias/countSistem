@@ -39,6 +39,7 @@ class TripForm(forms.ModelForm):
             'value': forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_value'}),
 
         }
+        exclude = ["received_weight"]  
     def __init__(self, *args, **kwargs):
         driver = kwargs.pop("driver", None)
         super().__init__(*args, **kwargs)

@@ -154,6 +154,7 @@ class Trip(models.Model):
     end_address = models.CharField(max_length=255)
     total_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     value = models.DecimalField("Valor del viaje", max_digits=12, decimal_places=2)
+    received_weight = models.DecimalField("Kilos recibidos", max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default="pendiente")
 
     departure_date = models.DateTimeField(null=True, blank=True)  # Fecha de salida
@@ -167,6 +168,14 @@ class Trip(models.Model):
     def clean(self):
         if self.arrival_date and self.arrival_date < self.departure_date:
             raise ValidationError("La fecha de llegada no puede ser antes de la fecha de salida.")
+        if self.received_weight < 0:
+            raise ValidationError("Los kilos recibidos no pueden ser negativos.")
+        if self.received_weight > self.total_weight:
+            raise ValidationError("Los kilos recibidos no pueden ser mayores al peso total.")
+    
+    @property
+    def delivered_weight(self):
+        return self.total_weight - self.received_weight
 
 
 class TripAddress(models.Model):

@@ -28,6 +28,10 @@ from django.views.generic.edit import UpdateView
 from .models import Driver, Vehicle, DriverAddress, DriverAdvance
 from django.conf import settings
 from urllib.parse import quote_plus
+from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+from decimal import Decimal
+
 
 ADDRESS_PREFIX = "addresses" 
 
@@ -204,20 +208,38 @@ class TripCreateView(CreateView):
         return super().form_valid(form)
     
     
+@require_http_methods(["POST"])
 @login_required
 def trip_complete(request, pk):
     trip = get_object_or_404(Trip, pk=pk)
 
-    if trip.status != "recibido":
-        trip.status = "recibido"
-        trip.save()
+    try:
+        received_weight = Decimal(request.POST.get("received_weight", "0"))
+    except (TypeError, ValueError):
+        messages.error(request, "Valor inválido para kilos recibidos.")
+        return redirect("trips:trip_list")
 
+    if received_weight < 0:
+        messages.error(request, "El peso recibido no puede ser negativo.")
+        return redirect("trips:trip_list")
+
+    if received_weight > trip.total_weight:
+        messages.error(request, "El peso recibido no puede ser mayor al peso total.")
+        return redirect("trips:trip_list")
+    
+    # Calcular pérdida
+    trip.status = "recibido"
+    trip.received_weight =  received_weight
+    trip.arrival_date = timezone.now()
+    trip.save()
+
+    # Crear factura si no existe
     invoice, created = Invoice.objects.get_or_create(
         trip=trip,
         defaults={"amount": trip.value}
     )
-    
     return redirect("trips:invoice_detail", pk=invoice.id)
+
 
 @method_decorator(login_required, name="dispatch")
 class InvoiceDetailView(DetailView):

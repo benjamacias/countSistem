@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load form_tags %}
 {% block title %}Nuevo viaje{% endblock %}
 {% block content %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
@@ -66,7 +67,17 @@
       <tr class="address-form">
         <td>{{ addresses.empty_form.address }}</td>
         <td>{{ addresses.empty_form.order }}</td>
-        <td>{{ addresses.empty_form.DELETE }} Eliminar</td>
+        <td class="text-center">
+          <div class="form-check d-flex justify-content-center align-items-center gap-2">
+            {{ addresses.empty_form.DELETE|add_class:"form-check-input visually-hidden" }}
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    onclick="toggleDeleteCheckbox(this)"
+                    title="Marcar para eliminar esta dirección">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
       </tr>
     </tbody>
   </table>
@@ -127,6 +138,16 @@
         });
       }
     });
+    function toggleDeleteCheckbox(button) {
+    const input = button.closest("td").querySelector("input[type='checkbox']");
+      if (input) {
+        input.checked = !input.checked;
+        button.classList.toggle("btn-danger");
+        button.classList.toggle("btn-outline-danger");
+        button.classList.toggle("opacity-50");
+      }
+    }
+
   </script>
 {% endblock %}
 
