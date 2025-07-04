@@ -27,6 +27,7 @@ from django.http import HttpResponse
 from django.views.generic.edit import UpdateView
 from .models import Driver, Vehicle, DriverAddress, DriverAdvance
 from django.conf import settings
+from urllib.parse import quote_plus
 
 ADDRESS_PREFIX = "addresses" 
 
@@ -58,7 +59,15 @@ def get_product_price(request):
     except Product.DoesNotExist:
         return JsonResponse({"error": "Producto no encontrado"}, status=404)
 
-
+def build_maps_url(trip):
+        addresses = (
+            [trip.start_address]
+            + list(trip.addresses.values_list("address", flat=True).order_by("order"))
+            + [trip.end_address]
+        )
+        return "https://www.google.com/maps/dir/" + "/".join(
+            quote_plus(a) for a in addresses if a
+        )
 
 
 @method_decorator(login_required, name="dispatch")
@@ -67,6 +76,16 @@ class TripListView(ListView):
     template_name = "trips/trip_dashboard.html"
     context_object_name = "trips"
     paginate_by = 6
+
+
+    def trip_list(request):
+        trips = (
+            Trip.objects
+            .prefetch_related("addresses")
+        )
+        for trip in trips:
+            trip.maps_url = build_maps_url(trip)  # atributo dinámico
+        return render(request, "trips/dashboard.html", {"trips": trips})
 
     def get_queryset(self):
         qs = Trip.objects.select_related("client", "driver", "vehicle").order_by("-id")

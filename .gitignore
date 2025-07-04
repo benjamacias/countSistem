@@ -10,10 +10,11 @@ token_wsfe.xml
 .csr.pem
 db.sqlite3
 settings.py
-
+*.bat
+*.zip
 # Ignore Python cache files
 __pycache__/
-
+*env/
 # Ignore virtual environment directories
 venv/
 .env
