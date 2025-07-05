@@ -1,5 +1,8 @@
 from django.urls import path
 from . import views
+from django.conf.urls.static import static
+from django.conf import settings
+
 from .views import (
     TripListView,
     TripCreateView,
@@ -58,3 +61,6 @@ urlpatterns = [
     path('productos/nuevo/', views.product_create, name='product_create'),
     path('productos/<int:pk>/editar/', views.product_update, name='product_update'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

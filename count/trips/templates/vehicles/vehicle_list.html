@@ -28,11 +28,13 @@
   {% for vehicle in vehicles %}
     <div class="col">
       <div class="card h-100 shadow-sm">
-        {% if vehicle.image_url %}
-          <img src="{{ vehicle.image_url }}" class="card-img-top" alt="Imagen de {{ vehicle.plate }}">
+        {% if vehicle.image %}
+          <img src="{{ vehicle.image.url }}" class="card-img-top" alt="Imagen de {{ vehicle.plate }}">
         {% else %}
-          <img src="https://placehold.co/600x400?text=No\nFoto" class="card-img-top" alt="Sin imagen">
+          <img src="https://placehold.co/600x400?text=No+Foto" class="card-img-top" alt="Sin imagen">
         {% endif %}
+
+
         <div class="card-body">
           <h6 class="card-title">{{ vehicle.plate }} – {{ vehicle.description }}</h6>
           <p class="card-text mb-1"><strong>Tarifa:</strong> ${{ vehicle.price_per_km|default:"0" }}/km</p>

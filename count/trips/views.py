@@ -369,7 +369,7 @@ def driver_edit(request, pk):
 @login_required
 def vehicle_create(request):
     if request.method == "POST":
-        form = VehicleForm(request.POST)
+        form = VehicleForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect("trips:drivers_list")
