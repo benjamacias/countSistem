@@ -9,6 +9,9 @@ token_wsfe.xml
 *.pem
 .csr.pem
 db.sqlite3
+*.xml
+*.pdf
+*.png
 settings.py
 *.bat
 *.zip
