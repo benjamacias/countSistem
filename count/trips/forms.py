@@ -139,20 +139,30 @@ class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
         fields = ["plate", "description", "driver", "image", "price_per_km"]
-        
+        widgets = {
+            "plate": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej: ABC123"}),
+            "description": forms.TextInput(attrs={"class": "form-control"}),
+            "driver": forms.Select(attrs={"class": "form-select"}),
+            "image": forms.FileInput(attrs={"class": "form-control"}),
+            "price_per_km": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+        }
+
     def clean_plate(self):
         plate = self.cleaned_data.get("plate", "").upper().replace(" ", "")
-        pattern1 = r'^[A-Z]{3}\d{3}$'
-        pattern2 = r'^\d{2}[A-Z]{3}\d{2}$'
+        pattern1 = r'^[A-Z]{3}\d{3}$'         # ABC123
+        pattern2 = r'^\d{2}[A-Z]{3}\d{2}$'    # 12ABC34
 
-        if plate:
-            if not re.fullmatch(pattern1, plate) and not re.fullmatch(pattern2, plate):
-                raise ValidationError("Formato de patente inválido. Use XXX000 o 00XXX00.")
-            
-            # Verifica si ya existe un vehículo con esa patente
-            if Vehicle.objects.filter(plate=plate).exists():
-                raise ValidationError("Esa patente ya está registrada.")
-        
+        if not re.fullmatch(pattern1, plate) and not re.fullmatch(pattern2, plate):
+            raise ValidationError("Formato de patente inválido. Use XXX000 o 00XXX00.")
+
+        # Verificación de unicidad (excluyendo el vehículo actual en edición)
+        existing = Vehicle.objects.filter(plate=plate)
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+
+        if existing.exists():
+            raise ValidationError("Esa patente ya está registrada.")
+
         return plate
 
 class AssignVehiclesForm(forms.ModelForm):
