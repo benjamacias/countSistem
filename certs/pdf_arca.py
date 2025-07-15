@@ -6,7 +6,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 import os
 
-CUIT_EMISOR = 20431255570  # tu CUIT
+CUIT_EMISOR = 20431255570 
 
 def generar_qr(cuit_emisor, tipo_cbte, pto_vta, cbte_nro, imp_total, cae, cae_vto):
     data = {
@@ -79,7 +79,7 @@ def main():
     sign = ta_dict["credentials"]["sign"]
 
     print("Emitiendo factura nueva para generar PDF...")
-    resultado = emitir_factura(token, sign)
+    resultado, imp_total = emitir_factura(token, sign)
     detalle = resultado['FeDetResp']['FECAEDetResponse'][0]
 
     datos_factura = {
@@ -90,7 +90,7 @@ def main():
         'cae': detalle['CAE'],
         'cae_vto': detalle['CAEFchVto'],
         'cuit_emisor': CUIT_EMISOR,
-        'imp_total': detalle['ImpTotal']
+        'imp_total': imp_total  # <- ya no falla porque lo recibimos de la función
     }
 
     print("Generando PDF con QR...")
