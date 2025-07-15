@@ -82,15 +82,6 @@ class TripListView(ListView):
     paginate_by = 6
 
 
-    def trip_list(request):
-        trips = (
-            Trip.objects
-            .prefetch_related("addresses")
-        )
-        for trip in trips:
-            trip.maps_url = build_maps_url(trip)  # atributo dinámico
-        return render(request, "trips/dashboard.html", {"trips": trips})
-
     def get_queryset(self):
         qs = Trip.objects.select_related("client", "driver", "vehicle").order_by("-id")
 
@@ -334,6 +325,7 @@ def asesoramiento_create(request, cliente_id):
 @method_decorator(login_required, name="dispatch")
 class DriverListView(ListView):
     model = Driver
+    ordering = ["name"]
     template_name = "drivers/driver_list.html"
     context_object_name = "drivers"
     paginate_by = 6
