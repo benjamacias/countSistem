@@ -228,7 +228,8 @@ class Payment(models.Model):
     method = models.CharField(max_length=20, choices=METHOD_CHOICES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     paid_at = models.DateTimeField(auto_now_add=True)
-
+    factura_emitida = models.BooleanField(default=False)
+    
     def __str__(self):
         return f"{self.method} - ${self.amount}"
 

@@ -18,6 +18,8 @@ WSDL_FE = "https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL"
 WSAA_URL = "https://wsaa.afip.gov.ar/ws/services/LoginCms"
 TA_FILE = "ta.xml"
 
+global transport
+
 ssl_context = ssl.create_default_context()
 ssl_context.set_ciphers("DEFAULT@SECLEVEL=1")
 
@@ -267,6 +269,83 @@ def consultar_condicion_iva(cuit_cliente, token, sign):
         return int(response['persona']['idCondicionIva'])
     except Exception:
         return None
+
+
+def obtener_token_sign_desde_cache():
+    """
+    Devuelve (token, sign) reutilizando el TA si sigue vigente,
+    o generando uno nuevo si está vencido o no existe.
+    """
+    ta_dict = cargar_ta()
+
+    if ta_dict and ta_vigente(ta_dict):
+        # TA todavía válido
+        token = ta_dict["credentials"]["token"]
+        sign = ta_dict["credentials"]["sign"]
+    else:
+        # Requiere nuevo TA
+        generar_ticket_request()
+        xml = obtener_token_y_sign()
+        guardar_ta(xml)
+        ta_dict = xmltodict.parse(xml)["loginTicketResponse"]
+        token = ta_dict["credentials"]["token"]
+        sign = ta_dict["credentials"]["sign"]
+
+    return token, sign
+
+
+def emitir_factura_dinamica(token, sign, cliente_cuit, cliente_condicion_iva, tipo_cbte, importe_total):
+    """
+    Solicita autorización para emitir una factura electrónica con parámetros dinámicos.
+    """
+    client = Client(WSDL_FE, transport=transport)
+    auth = {'Token': token, 'Sign': sign, 'Cuit': CUIT}
+
+    ultimo = client.service.FECompUltimoAutorizado(Auth=auth, PtoVta=1, CbteTipo=tipo_cbte)
+    proximo_numero = ultimo.CbteNro + 1
+
+    neto = round(importe_total / 1.21, 2)
+    iva = round(importe_total - neto, 2)
+
+    detalle = [{
+        'Concepto': 1,
+        'DocTipo': 80 if len(str(cliente_cuit)) == 11 else 96,  # CUIT o DNI
+        'DocNro': cliente_cuit,
+        'CbteDesde': proximo_numero,
+        'CbteHasta': proximo_numero,
+        'CbteFch': datetime.now().strftime('%Y%m%d'),
+        'ImpTotal': importe_total,
+        'ImpTotConc': 0.0,
+        'ImpNeto': neto,
+        'ImpOpEx': 0.0,
+        'ImpIVA': iva,
+        'ImpTrib': 0.0,
+        'MonId': 'PES',
+        'MonCotiz': 1.0,
+        'CondicionIVAReceptorId': cliente_condicion_iva,
+        'Iva': [{
+            'AlicIva': {
+                'Id': 5,
+                'BaseImp': neto,
+                'Importe': iva
+            }
+        }],
+    }]
+
+    fe_req = {
+        'FeCabReq': {
+            'CantReg': 1,
+            'PtoVta': 1,
+            'CbteTipo': 6  # Tipo B
+        },
+        'FeDetReq': {'FECAEDetRequest': detalle}
+    }
+
+    result = client.service.FECAESolicitar(Auth=auth, FeCAEReq=fe_req)
+    return result, importe_total
+
+
+
 
 # === EJECUCIÓN ===
 

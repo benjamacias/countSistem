@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 import logging
 from django.forms import modelformset_factory
 import datetime
-
+from .fact_arca import emitir_factura_dinamica
 
 
 logger = logging.getLogger('app')
@@ -51,6 +51,7 @@ class TripForm(forms.ModelForm):
             if first_vehicle:
                 self.initial["vehicle"] = first_vehicle
 
+
 class PaymentForm(forms.ModelForm):
     client = forms.ModelChoiceField(
         queryset=Client.objects.all(),
@@ -87,27 +88,59 @@ class PaymentForm(forms.ModelForm):
         payment = super().save(commit=False)
 
         if self.cleaned_data.get("generar_factura"):
+
             client = self.cleaned_data["client"]
-            tipo_cbte = self.cleaned_data["tipo_cbte"]
+            tipo_cbte = int(self.cleaned_data["tipo_cbte"])
             punto_venta = self.cleaned_data["punto_venta"]
+            cliente_cuit = int(client.cuit or 0)
+            importe_total = float(payment.amount)
 
-            cae = "71345678901234"  # Simulación
-            vencimiento_cae = datetime.date(2025, 6, 10)
+            # Mapear tipo_iva textual a ID para AFIP
+            COND_IVA_MAP = {
+                "RI": 1,
+                "MT": 6,
+                "CF": 5,
+                "EX": 4,
+                "NR": 3,
+            }
+            cliente_condicion_iva = COND_IVA_MAP.get(client.tipo_iva, 5)  # Default a Consumidor Final
 
-            invoice = Invoice.objects.create(
-                trip=trip,
-                amount=payment.amount,
-                punto_venta=punto_venta,
-                tipo_cbte=tipo_cbte,
-                cae=cae,
-                cae_vencimiento=vencimiento_cae,
-            )
+            # Emitir factura real con AFIP
+            try:
+                result = emitir_factura_dinamica(
+                    cliente_cuit=cliente_cuit,
+                    condicion_iva_id=cliente_condicion_iva,
+                    tipo_cbte=tipo_cbte,
+                    imp_total=importe_total,
+                )
+                print(f"Resultado de emisión: {result}")
+                detalle = result.FeDetResp.FECAEDetResponse[0]
+                if detalle.Resultado != "A":
+                    raise ValidationError("AFIP no aprobó la factura")
 
-            payment.invoice = invoice
+                cae = detalle.CAE
+                vencimiento_cae = datetime.datetime.strptime(
+                    detalle.CAEFchVto, "%Y%m%d"
+                ).date()
+
+                # Crear el objeto Invoice
+                invoice = Invoice.objects.create(
+                    trip=trip,
+                    amount=payment.amount,
+                    punto_venta=punto_venta,
+                    tipo_cbte=tipo_cbte,
+                    cae=cae,
+                    cae_vencimiento=vencimiento_cae,
+                )
+
+                payment.invoice = invoice
+                payment.factura_emitida = True  # <- Setea el campo solo si fue aprobada
+
+            except Exception as e:
+                raise ValidationError(f"Error al emitir factura: {str(e)}")
 
         if commit:
             payment.save()
-
             if payment.invoice:
                 logger.info(f"Factura creada: {payment.invoice}")
                 if payment.invoice.trip:

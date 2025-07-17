@@ -1,4 +1,4 @@
-from fact_arca import emitir_factura, cargar_ta, ta_vigente
+from certs.fact_arca_testing import emitir_factura, cargar_ta, ta_vigente
 import xmltodict
 from datetime import datetime
 import qrcode

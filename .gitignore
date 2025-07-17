@@ -5,6 +5,7 @@
 *.crt
 *.cms
 request.wsaa.xml
+*.jpg
 token_wsfe.xml
 *.pem
 .csr.pem
