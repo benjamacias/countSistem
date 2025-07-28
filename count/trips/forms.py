@@ -148,10 +148,6 @@ class PaymentForm(forms.ModelForm):
 
         return payment
 
-class ClientForm(forms.ModelForm):
-    class Meta:
-        model = Client
-        fields = '__all__'  # O pon los campos específicos que quieras
 
 class ClientForm(forms.ModelForm):
     class Meta:

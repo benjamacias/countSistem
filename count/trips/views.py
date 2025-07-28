@@ -497,10 +497,9 @@ class VehicleListView(ListView):
 
     def get_paginate_by(self, queryset):
         try:
-            return int(self.request.GET.get('limit', paginate_by=self.paginate_by))
+            return int(self.request.GET.get('limit', self.paginate_by))
         except (ValueError, TypeError):
-            paginate_by=self.paginate_by
-            return paginate_by  # fallback por defecto
+            return self.paginate_by  # fallback por defecto
 
     def get_queryset(self):
         qs = Vehicle.objects.select_related('driver')
