@@ -25,7 +25,7 @@ urlpatterns = [
     path("ajax/get_vehicles_by_driver/", views.get_vehicles_by_driver, name="get_vehicles_by_driver"),
     path("ajax/get_product_price/", views.get_product_price, name="get_product_price"),
 
-
+    
     # Viajes
     path("trips/new/", TripCreateView.as_view(), name="trip_create"),
     path("trips/<int:pk>/complete/", views.trip_complete, name="trip_complete"),
