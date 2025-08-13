@@ -257,6 +257,8 @@ def payment_create(request, pk):
                 payment = form.save(commit=False)
                 payment.invoice = invoice
                 payment.save()
+                if getattr(form, "billing_error_message", None):
+                    messages.warning(request, form.billing_error_message)
 
                 # Si el monto pagado cubre el total de la factura, actualizamos estado del viaje
                 if invoice.trip and invoice.remaining() <= 0:

@@ -141,7 +141,11 @@ class PaymentForm(forms.ModelForm):
                 if not payment.pk:
                     payment.save()
                 BillingError.objects.create(payment=payment, error_message=str(e))
-                raise ValidationError(f"Error al emitir factura: {str(e)}")
+                logger.warning(f"Error al emitir factura: {e}")
+                self.billing_error_message = (
+                    "ARCA rechazó la factura. Verifique el tipo de "
+                    "comprobante y los datos del cliente; se completará más tarde."
+                )
 
         if commit:
             payment.save()
