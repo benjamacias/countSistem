@@ -35,8 +35,10 @@ class Client(models.Model):
     )
 
     def __str__(self):
-        return f"{self.nombre} {self.apellido}"
-    
+        nombre = (self.nombre or "").strip().title()
+        apellido = (self.apellido or "").strip().title()
+        return f"{nombre} {apellido}".strip()
+        
     @property
     def total_facturado(self):
         return Invoice.objects.filter(trip__client=self).aggregate(total=Sum("amount"))["total"] or 0
@@ -238,6 +240,7 @@ class BillingError(models.Model):
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="billing_errors")
     error_message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    fixed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Error de facturación #{self.id}"

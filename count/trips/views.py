@@ -496,13 +496,20 @@ class VehicleListView(ListView):
     template_name = 'vehicles/vehicle_list.html'
     context_object_name = 'vehicles'
     paginate_by = 6
+    max_paginate_by = 100
 
     def get_paginate_by(self, queryset):
+        limit = self.request.GET.get('limit')
+        if limit is None:
+            return self.paginate_by
         try:
-            return int(self.request.GET.get('limit', self.paginate_by))
+            limit = int(limit)
         except (ValueError, TypeError):
-            return self.paginate_by  # fallback por defecto
-
+            return self.paginate_by
+        if limit <= 0 or limit > self.max_paginate_by:
+            return self.paginate_by
+        return limit
+    
     def get_queryset(self):
         qs = Vehicle.objects.select_related('driver')
 

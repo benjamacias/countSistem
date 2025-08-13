@@ -16,6 +16,7 @@ from .models import (
 )
 
 
+
 class PaymentFormBillingErrorTests(TestCase):
     def setUp(self):
         self.client_obj = Client.objects.create(nombre="Tester")
@@ -39,7 +40,6 @@ class PaymentFormBillingErrorTests(TestCase):
         self.assertIsNotNone(error)
         self.assertEqual(error.payment, payment)
         self.assertTrue(hasattr(form, "billing_error_message"))
-
 
 class PaymentCreateViewBillingErrorMessageTests(TestCase):
     def setUp(self):
@@ -88,3 +88,4 @@ class PaymentCreateViewBillingErrorMessageTests(TestCase):
             response.request["PATH_INFO"],
             reverse("trips:invoice_detail", args=[self.invoice.id]),
         )
+
