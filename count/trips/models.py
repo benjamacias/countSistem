@@ -35,8 +35,10 @@ class Client(models.Model):
     )
 
     def __str__(self):
-        return f"{self.nombre} {self.apellido}"
-    
+        nombre = (self.nombre or "").strip().title()
+        apellido = (self.apellido or "").strip().title()
+        return f"{nombre} {apellido}".strip()
+        
     @property
     def total_facturado(self):
         return Invoice.objects.filter(trip__client=self).aggregate(total=Sum("amount"))["total"] or 0

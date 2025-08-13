@@ -138,7 +138,7 @@ class PaymentForm(forms.ModelForm):
                 payment.factura_emitida = True  # <- Setea el campo solo si fue aprobada
 
             except Exception as e:
-                if commit:
+                if not payment.pk:
                     payment.save()
                 BillingError.objects.create(payment=payment, error_message=str(e))
                 raise ValidationError(f"Error al emitir factura: {str(e)}")

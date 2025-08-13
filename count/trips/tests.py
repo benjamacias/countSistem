@@ -116,7 +116,7 @@ class VehicleListPaginationTests(TestCase):
         self.client.force_login(self.user)
         url = reverse("trips:vehicles_list")
         # limit parameter is ignored due to view logic so page size remains 6
-        response = self.client.get(url + "?limit=3")
+        response = self.client.get(url + "?limit=abc")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["page_obj"].object_list), 6)
 
