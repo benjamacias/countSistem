@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Trip, TripAddress, Payment
-from .models import Client, Driver, Vehicle, Asesoramiento, Invoice, Product, DriverAddress, DriverAdvance
+from .models import Client, Driver, Vehicle, Asesoramiento, Invoice, Product, DriverAddress, DriverAdvance, BillingError
 import re
 from django import forms
 from django.core.exceptions import ValidationError
@@ -112,6 +112,7 @@ class PaymentForm(forms.ModelForm):
                     condicion_iva_id=cliente_condicion_iva,
                     tipo_cbte=tipo_cbte,
                     imp_total=importe_total,
+                    punto_venta=punto_venta,
                 )
                 print(f"Resultado de emisión: {result}")
                 detalle = result.FeDetResp.FECAEDetResponse[0]
@@ -137,6 +138,9 @@ class PaymentForm(forms.ModelForm):
                 payment.factura_emitida = True  # <- Setea el campo solo si fue aprobada
 
             except Exception as e:
+                if commit:
+                    payment.save()
+                BillingError.objects.create(payment=payment, error_message=str(e))
                 raise ValidationError(f"Error al emitir factura: {str(e)}")
 
         if commit:
