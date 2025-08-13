@@ -234,3 +234,11 @@ class Payment(models.Model):
         return f"{self.method} - ${self.amount}"
 
 
+class BillingError(models.Model):
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="billing_errors")
+    error_message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Error de facturación #{self.id}"
+

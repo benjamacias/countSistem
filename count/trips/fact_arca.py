@@ -203,42 +203,49 @@ def obtener_token_sign_desde_cache():
 
 
 
-def emitir_factura_dinamica(cliente_cuit, condicion_iva_id, tipo_cbte, imp_total):
+def emitir_factura_dinamica(cliente_cuit, condicion_iva_id, tipo_cbte, imp_total, punto_venta):
+    """Emitir factura electrónica utilizando los datos proporcionados."""
+
     # Configurar sesión segura
     session = requests.Session()
     session.mount("https://", SSLAdapter())
     transport = Transport(session=session)
 
-    token, sign =obtener_token_sign_desde_cache()
+    token, sign = obtener_token_sign_desde_cache()
     # Crear cliente WSFE
     client = Client(WSDL_FE, transport=transport)
 
     auth = {'Token': token, 'Sign': sign, 'Cuit': CUIT}
-    print(tipo_cbte)
-    ultimo = client.service.FECompUltimoAutorizado(Auth=auth, PtoVta=1, CbteTipo=tipo_cbte)
+
+    # Obtener el último comprobante autorizado para calcular el próximo número
+    ultimo = client.service.FECompUltimoAutorizado(Auth=auth, PtoVta=punto_venta, CbteTipo=tipo_cbte)
     proximo_numero = ultimo.CbteNro + 1
+
+    # Calcular importes neto e IVA (21%)
+    imp_neto = round(imp_total / 1.21, 2)
+    imp_iva = round(imp_total - imp_neto, 2)
 
     detalle = [{
         'Concepto': 1,
-        'DocTipo': 96, 
+        'DocTipo': 96,
         'DocNro': cliente_cuit,
         'CbteDesde': proximo_numero,
         'CbteHasta': proximo_numero,
         'CbteFch': datetime.now().strftime('%Y%m%d'),
         'ImpTotal': imp_total,
         'ImpTotConc': 0.0,
-        'ImpNeto': 100.0,
+        'ImpNeto': imp_neto,
         'ImpOpEx': 0.0,
-        'ImpIVA': 21.0,
+        'ImpIVA': imp_iva,
         'ImpTrib': 0.0,
         'MonId': 'PES',
         'MonCotiz': 1.0,
-        'CondicionIVAReceptorId': 5,
+        'CondicionIVAReceptorId': condicion_iva_id,
         'Iva': [{
             'AlicIva': {
                 'Id': condicion_iva_id,
-                'BaseImp': 100.0,
-                'Importe': 21.0
+                'BaseImp': imp_neto,
+                'Importe': imp_iva
             }
         }],
     }]
@@ -246,8 +253,8 @@ def emitir_factura_dinamica(cliente_cuit, condicion_iva_id, tipo_cbte, imp_total
     fe_req = {
         'FeCabReq': {
             'CantReg': 1,
-            'PtoVta': 1,
-            'CbteTipo': 6
+            'PtoVta': punto_venta,
+            'CbteTipo': tipo_cbte
         },
         'FeDetReq': {'FECAEDetRequest': detalle}
     }
