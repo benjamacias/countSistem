@@ -24,6 +24,7 @@ urlpatterns = [
     path("", TripListView.as_view(), name="trip_list"),
     path("ajax/get_vehicles_by_driver/", views.get_vehicles_by_driver, name="get_vehicles_by_driver"),
     path("ajax/get_product_price/", views.get_product_price, name="get_product_price"),
+    path("charts/", views.charts_view, name="charts"),
 
     
     # Viajes
