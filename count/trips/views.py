@@ -14,7 +14,7 @@ from .forms import ClienteForm, AsesoramientoForm, AssignVehiclesForm
 from django.http import JsonResponse
 from django.utils.http import urlencode
 from django.db.models import Q
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from django.db.models import Prefetch
 from django.db.models.functions import Concat
 from django.db.models import Value
@@ -31,6 +31,7 @@ from urllib.parse import quote_plus
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from decimal import Decimal
+import json
 
 
 ADDRESS_PREFIX = "addresses" 
@@ -623,4 +624,47 @@ def product_create(request):
     else:
         form = ProductForm()
     return render(request, 'products/product_form.html', {'form': form})
+
+
+@login_required
+def charts_view(request):
+    invoice_summary = (
+        Invoice.objects.values('created_at__month')
+        .annotate(total=Sum('amount'))
+        .order_by('created_at__month')
+    )
+    invoice_labels = [f"Mes {item['created_at__month']}" for item in invoice_summary]
+    invoice_data = [float(item['total']) for item in invoice_summary]
+
+    trip_summary = (
+        Trip.objects.values('status')
+        .annotate(total=Count('id'))
+        .order_by('status')
+    )
+    trip_labels = [item['status'] for item in trip_summary]
+    trip_data = [item['total'] for item in trip_summary]
+
+    advance_summary = (
+        DriverAdvance.objects.values('category')
+        .annotate(total=Sum('amount'))
+        .order_by('category')
+    )
+    advance_labels = [item['category'] for item in advance_summary]
+    advance_data = [float(item['total']) for item in advance_summary]
+
+    products = Product.objects.all()
+    product_labels = [p.name for p in products]
+    product_data = [float(p.price_per_kilo) for p in products]
+
+    context = {
+        'invoice_labels': json.dumps(invoice_labels),
+        'invoice_data': json.dumps(invoice_data),
+        'trip_labels': json.dumps(trip_labels),
+        'trip_data': json.dumps(trip_data),
+        'advance_labels': json.dumps(advance_labels),
+        'advance_data': json.dumps(advance_data),
+        'product_labels': json.dumps(product_labels),
+        'product_data': json.dumps(product_data),
+    }
+    return render(request, 'charts/dashboard.html', context)
 
