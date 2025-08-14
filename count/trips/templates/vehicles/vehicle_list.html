@@ -29,11 +29,10 @@
     <div class="col">
       <div class="card h-100 shadow-sm">
         {% if vehicle.image %}
-          <img src="{{ vehicle.image.url }}" class="card-img-top" alt="Imagen de {{ vehicle.plate }}">
+          <img src="{{ vehicle.image.url }}" class="card-img-top vehicle-img" alt="Imagen de {{ vehicle.plate }}">
         {% else %}
-          <img src="https://placehold.co/600x400?text=No+Foto" class="card-img-top" alt="Sin imagen">
+          <img src="https://placehold.co/600x400?text=No+Foto" class="card-img-top vehicle-img" alt="Sin imagen">
         {% endif %}
-
 
         <div class="card-body">
           <h6 class="card-title">{{ vehicle.plate }} – {{ vehicle.description }}</h6>
@@ -92,6 +91,12 @@
 </nav>
 {% endif %}
 
-
+<style>
+.vehicle-img {
+    height: 200px;       /* altura fija */
+    object-fit: cover;   /* recorta la imagen manteniendo proporción */
+    width: 100%;         /* ocupa todo el ancho del card */
+}
+</style>
 
 {% endblock %}
