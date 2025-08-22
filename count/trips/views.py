@@ -5,7 +5,7 @@ from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy
 from django.db import transaction
 from .models import Trip, Invoice, Client, Driver, Vehicle, Product
-from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, AsesoramientoForm
+from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, AsesoramientoForm, CartaPorteForm
 from .forms import DriverWithVehicleForm, ProductForm
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -32,6 +32,8 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from decimal import Decimal
 import json
+from django.core.mail import EmailMessage
+from .fact_arca import obtener_carta_porte
 
 
 ADDRESS_PREFIX = "addresses" 
@@ -324,6 +326,62 @@ def asesoramiento_create(request, cliente_id):
     else:
         form = AsesoramientoForm()
     return render(request, 'clients/form_asesoramiento.html', {'form': form, 'cliente': cliente})
+
+
+@login_required
+def carta_porte_invoice(request, client_id):
+    client = get_object_or_404(Client, pk=client_id)
+    if request.method == "POST":
+        form = CartaPorteForm(request.POST, client=client)
+        if form.is_valid():
+            invoice = form.cleaned_data["invoice"]
+            ctg = form.cleaned_data["ctg"]
+            data = obtener_carta_porte(ctg)
+            invoice.carta_porte_ctg = ctg
+            invoice.carta_porte_pdf = data.get("pdf")
+
+            action = request.POST.get("action")
+            if action == "create_trip":
+                plate = data.get("patente")
+                try:
+                    vehicle = Vehicle.objects.get(plate__iexact=plate)
+                except Vehicle.DoesNotExist:
+                    messages.error(request, "No se encontró vehículo con la patente indicada.")
+                    return render(request, "trips/carta_porte_form.html", {"form": form, "client": client})
+                if not vehicle.driver:
+                    messages.error(request, "El vehículo no tiene chofer asignado.")
+                    return render(request, "trips/carta_porte_form.html", {"form": form, "client": client})
+                trip = Trip.objects.create(
+                    client=client,
+                    driver=vehicle.driver,
+                    vehicle=vehicle,
+                    start_address=data.get("origen", ""),
+                    end_address=data.get("destino", ""),
+                    total_weight=0,
+                    value=0,
+                    status="recibido",
+                    arrival_date=timezone.now(),
+                )
+                invoice.trip = trip
+
+            invoice.save()
+            if client.gmail:
+                email = EmailMessage(
+                    subject="Carta de Porte",
+                    body="Se adjunta Carta de Porte correspondiente.",
+                    to=[client.gmail],
+                )
+                if data.get("pdf"):
+                    email.attach("carta_porte.pdf", data["pdf"], "application/pdf")
+                email.send(fail_silently=True)
+            if action == "create_trip":
+                messages.success(request, "Viaje generado y Carta de Porte vinculada.")
+            else:
+                messages.success(request, "Carta de Porte vinculada y enviada al cliente.")
+            return redirect("trips:invoice_detail", invoice.pk)
+    else:
+        form = CartaPorteForm(client=client)
+    return render(request, "trips/carta_porte_form.html", {"form": form, "client": client})
 
 @method_decorator(login_required, name="dispatch")
 class DriverListView(ListView):
