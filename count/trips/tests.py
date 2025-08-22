@@ -12,6 +12,7 @@ from trips.models import (
     Vehicle,
     Product,
     Trip,
+    Trailer,
 )
 
 class ValidatePlateTests(TestCase):
@@ -119,4 +120,32 @@ class VehicleListPaginationTests(TestCase):
         response = self.client.get(url + "?limit=abc")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["page_obj"].object_list), 6)
+
+
+class TrailerHomologationTests(TestCase):
+    def test_homologation_set_false_when_license_expired(self):
+        expired_date = timezone.now().date() - timezone.timedelta(days=1)
+        trailer = Trailer.objects.create(
+            license_plate="AAA123",
+            license_expiry=expired_date,
+            technical_id="TECH1",
+            technical_expiry=expired_date,
+            cargo_type="Granos",
+            homologation=True,
+        )
+        trailer.refresh_from_db()
+        self.assertFalse(trailer.homologation)
+
+    def test_homologation_remains_true_with_valid_license(self):
+        future_date = timezone.now().date() + timezone.timedelta(days=1)
+        trailer = Trailer.objects.create(
+            license_plate="BBB123",
+            license_expiry=future_date,
+            technical_id="TECH2",
+            technical_expiry=future_date,
+            cargo_type="Granos",
+            homologation=True,
+        )
+        trailer.refresh_from_db()
+        self.assertTrue(trailer.homologation)
 
