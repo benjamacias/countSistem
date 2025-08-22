@@ -46,6 +46,13 @@ class CartaPorteViewTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertTrue(mail.outbox[0].attachments)
 
+    def test_start_view_redirects_to_client(self):
+        url = reverse('trips:carta_porte_start')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(url, {'client': self.client_obj.id})
+        self.assertRedirects(response, reverse('trips:carta_porte_invoice', args=[self.client_obj.id]))
+
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     @patch('trips.views.obtener_carta_porte')
     def test_creates_trip_from_carta_porte(self, mock_obtener):

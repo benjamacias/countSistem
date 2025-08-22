@@ -420,3 +420,7 @@ class CartaPorteForm(forms.Form):
                 Q(trip__client=client) | Q(trip__isnull=True)
             )
 
+
+class CartaPorteClientForm(forms.Form):
+    client = forms.ModelChoiceField(queryset=Client.objects.all(), label="Cliente")
+

@@ -5,7 +5,7 @@ from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy
 from django.db import transaction
 from .models import Trip, Invoice, Client, Driver, Vehicle, Product
-from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, AsesoramientoForm, CartaPorteForm
+from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, AsesoramientoForm, CartaPorteForm, CartaPorteClientForm
 from .forms import DriverWithVehicleForm, ProductForm
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -377,6 +377,18 @@ def asesoramiento_create(request, cliente_id):
     else:
         form = AsesoramientoForm()
     return render(request, 'clients/form_asesoramiento.html', {'form': form, 'cliente': cliente})
+
+
+@login_required
+def carta_porte_start(request):
+    if request.method == "POST":
+        form = CartaPorteClientForm(request.POST)
+        if form.is_valid():
+            client = form.cleaned_data["client"]
+            return redirect("trips:carta_porte_invoice", client.id)
+    else:
+        form = CartaPorteClientForm()
+    return render(request, "trips/carta_porte_client.html", {"form": form})
 
 
 @login_required
