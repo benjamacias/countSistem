@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Client, Vehicle, Driver, Trip, TripAddress, Invoice, Payment, BillingError
+from .models import Client, Vehicle, Trailer, Driver, Trip, TripAddress, Invoice, Payment, BillingError
 
 # Inline para TripAddress dentro de Trip
 class TripAddressInline(admin.TabularInline):
@@ -14,7 +14,7 @@ class TripAdmin(admin.ModelAdmin):
     list_filter = ("status",)
 
 # Registro simple para otros modelos
-admin.site.register([Client, Vehicle, Driver, Invoice, Payment, BillingError])
+admin.site.register([Client, Vehicle, Trailer, Driver, Invoice, Payment, BillingError])
 
 # Admin para TripAddress, mostrando info propia y datos relacionados de Trip
 @admin.register(TripAddress)
