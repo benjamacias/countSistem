@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 import logging
 from django.forms import modelformset_factory
 import datetime
+from django.db.models import Q
 from .fact_arca import emitir_factura_dinamica
 
 
@@ -388,3 +389,20 @@ DriverAdvanceFormSet = modelformset_factory(
     extra=1,
     can_delete=True
 )
+
+
+class CartaPorteForm(forms.Form):
+    invoice = forms.ModelChoiceField(queryset=Invoice.objects.none(), label="Factura")
+    ctg = forms.CharField(label="Número CTG")
+
+    def __init__(self, *args, client=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if client:
+            self.fields["invoice"].queryset = Invoice.objects.filter(
+                Q(trip__client=client) | Q(trip__isnull=True)
+            )
+
+
+class CartaPorteClientForm(forms.Form):
+    client = forms.ModelChoiceField(queryset=Client.objects.all(), label="Cliente")
+

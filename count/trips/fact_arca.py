@@ -26,6 +26,7 @@ SERVICE = "wsfe"
 TA_FILE = "ta.xml"
 WSDL_FE = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
 WSAA_URL = "https://wsaahomo.afip.gov.ar/ws/services/LoginCms?WSDL"
+WSDL_CGT = "https://fwshomo.afip.gov.ar/ctg/services/CTGService?wsdl"
 
 
 ssl_context = ssl.create_default_context()
@@ -261,3 +262,33 @@ def emitir_factura_dinamica(cliente_cuit, condicion_iva_id, tipo_cbte, imp_total
 
     respuesta = client.service.FECAESolicitar(Auth=auth, FeCAEReq=fe_req)
     return respuesta
+
+
+def obtener_carta_porte(ctg_numero):
+    """Consulta una Carta de Porte electrónica usando el servicio CGT."""
+
+    session = requests.Session()
+    session.mount("https://", SSLAdapter())
+    transport = Transport(session=session)
+
+    token, sign = obtener_token_sign_desde_cache()
+    client = Client(WSDL_CGT, transport=transport)
+    auth = {'Token': token, 'Sign': sign, 'Cuit': CUIT}
+
+    respuesta = client.service.consultarCTG(Auth=auth, Ctg=ctg_numero)
+
+    def _get(obj, name):
+        if isinstance(obj, dict):
+            return obj.get(name)
+        return getattr(obj, name, None)
+
+    pdf_b64 = _get(respuesta, "pdf")
+    pdf = base64.b64decode(pdf_b64) if pdf_b64 else None
+
+    return {
+        "estado": _get(respuesta, "estado"),
+        "origen": _get(respuesta, "origen"),
+        "destino": _get(respuesta, "destino"),
+        "patente": _get(respuesta, "patente"),
+        "pdf": pdf,
+    }

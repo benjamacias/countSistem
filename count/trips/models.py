@@ -199,9 +199,11 @@ class Invoice(models.Model):
 
     # Nuevos campos AFIP
     punto_venta = models.PositiveIntegerField(default=1)
-    tipo_cbte = models.PositiveIntegerField(default=6)  
+    tipo_cbte = models.PositiveIntegerField(default=6)
     cae = models.CharField(max_length=14, blank=True, null=True)
     cae_vencimiento = models.DateField(blank=True, null=True)
+    carta_porte_ctg = models.CharField(max_length=20, blank=True, null=True)
+    carta_porte_pdf = models.BinaryField(blank=True, null=True)
 
     def paid_total(self):
         return sum(p.amount for p in self.payments.all())

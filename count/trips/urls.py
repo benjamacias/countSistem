@@ -44,6 +44,8 @@ urlpatterns = [
     path("clients/new/", views.client_create, name="client_create"),
     path("clientes/<int:pk>/editar/", views.client_update, name="client_update"),
     path("clients/<int:cliente_id>/asesoramiento/", views.asesoramiento_create, name="asesoramiento_create"),
+    path("clients/<int:client_id>/carta-porte/", views.carta_porte_invoice, name="carta_porte_invoice"),
+    path("carta-porte/", views.carta_porte_start, name="carta_porte_start"),
 
     # Conductores
     path("drivers/", DriverListView.as_view(), name="drivers_list"),
