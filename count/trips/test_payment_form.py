@@ -65,7 +65,8 @@ class PaymentCreateViewBillingErrorMessageTests(TestCase):
             total_weight=1,
             value=100,
         )
-        self.invoice = Invoice.objects.create(trip=self.trip, amount=100)
+        self.invoice = Invoice.objects.create(client=self.client_obj, amount=100)
+        self.invoice.trips.add(self.trip)
 
     def test_warning_message_displayed_when_billing_fails(self):
         url = reverse("trips:payment_create", args=[self.invoice.id])

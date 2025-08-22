@@ -10,8 +10,11 @@
     <div class="col-md-8 col-lg-6">
 
       <h3 class="mb-4 text-center">
-        Pago para Factura de Viaje #{{ invoice.trip.id|stringformat:"05d" }}
+        Pago para Factura #{{ invoice.id|stringformat:"05d" }}
       </h3>
+      <p class="text-center">
+        Viajes: {% for t in invoice.trips.all %}#{{ t.id }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </p>
 
       <div class="alert alert-info text-center">
         <strong>Importe restante:</strong> ${{ remaining }}
