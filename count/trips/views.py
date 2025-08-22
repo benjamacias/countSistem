@@ -401,7 +401,7 @@ def driver_edit(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
 
     if request.method == "POST":
-        form = DriverForm(request.POST, instance=driver)
+        form = DriverForm(request.POST, request.FILES, instance=driver)
         if form.is_valid():
             form.save()
             return redirect("trips:drivers_list")  # redirige a la lista de choferes
@@ -426,7 +426,7 @@ def vehicle_create(request):
 @login_required
 def driver_create(request):
     if request.method == "POST":
-        form = DriverForm(request.POST)
+        form = DriverForm(request.POST, request.FILES)
         address_formset = DriverAddressFormSet(request.POST, prefix='addresses')
         advance_formset = DriverAdvanceFormSet(request.POST, prefix='advances')
 
