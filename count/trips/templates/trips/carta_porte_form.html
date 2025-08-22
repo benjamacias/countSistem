@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Vincular Carta de Porte{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <h3 class="mb-4 text-center">Carta de Porte para {{ client }}</h3>
+      <form method="post" class="card shadow-sm p-4 bg-light border-0 rounded">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+          {% render_field field class="form-control" %}
+          {% for error in field.errors %}
+            <div class="text-danger small">{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+        <div class="d-flex justify-content-end gap-2">
+          <button type="submit" name="action" value="link" class="btn btn-success">Guardar</button>
+          <button type="submit" name="action" value="create_trip" class="btn btn-primary">Generar viaje</button>
+          <a href="{% url 'trips:invoice_list' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
