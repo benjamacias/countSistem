@@ -225,9 +225,17 @@ class DriverForm(forms.ModelForm):
             "phone",
             "license_number",
             "license_expiry",
+            "license_front_image",
+            "license_back_image",
+            "insurance_policy_pdf",
+            "technical_doc_pdf",
         ]
         widgets = {
             "license_expiry": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "license_front_image": forms.FileInput(attrs={"class": "form-control"}),
+            "license_back_image": forms.FileInput(attrs={"class": "form-control"}),
+            "insurance_policy_pdf": forms.FileInput(attrs={"class": "form-control", "accept": "application/pdf"}),
+            "technical_doc_pdf": forms.FileInput(attrs={"class": "form-control", "accept": "application/pdf"}),
         }
 
     def save(self, commit=True):

@@ -100,6 +100,10 @@ class Driver(models.Model):
     phone = models.CharField(max_length=20, blank=True, null=True)
     license_number = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Número de licencia del conductor")
     license_expiry = models.DateField("Vencimiento de licencia", blank=True, null=True)
+    license_front_image = models.ImageField(upload_to="drivers/licenses/", null=True, blank=True)
+    license_back_image = models.ImageField(upload_to="drivers/licenses/", null=True, blank=True)
+    insurance_policy_pdf = models.FileField(upload_to="drivers/policy/", null=True, blank=True)
+    technical_doc_pdf = models.FileField(upload_to="drivers/technical/", null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} {self.surname or ''}"

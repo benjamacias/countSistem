@@ -101,7 +101,7 @@
         <div class="modal fade" id="editDriverModal{{ driver.id }}" tabindex="-1" aria-labelledby="editDriverModalLabel{{ driver.id }}" aria-hidden="true">
           <div class="modal-dialog modal-dialog-scrollable modal-lg">
             <div class="modal-content">
-              <form method="post" action="{% url 'trips:driver_edit' driver.id %}">
+              <form method="post" enctype="multipart/form-data" action="{% url 'trips:driver_edit' driver.id %}">
                 {% csrf_token %}
                 <div class="modal-header bg-light">
                   <h5 class="modal-title" id="editDriverModalLabel{{ driver.id }}">
