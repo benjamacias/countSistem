@@ -8,8 +8,9 @@ from django.core.exceptions import ValidationError
 import logging
 from django.forms import modelformset_factory
 import datetime
-from .fact_arca import emitir_factura_dinamica
 
+
+emitir_factura_dinamica = None
 
 logger = logging.getLogger('app')
 
@@ -107,6 +108,10 @@ class PaymentForm(forms.ModelForm):
 
             # Emitir factura real con AFIP
             try:
+                global emitir_factura_dinamica
+                if emitir_factura_dinamica is None:
+                    from .fact_arca import emitir_factura_dinamica as ef
+                    emitir_factura_dinamica = ef
                 result = emitir_factura_dinamica(
                     cliente_cuit=cliente_cuit,
                     condicion_iva_id=cliente_condicion_iva,
@@ -126,13 +131,15 @@ class PaymentForm(forms.ModelForm):
 
                 # Crear el objeto Invoice
                 invoice = Invoice.objects.create(
-                    trip=trip,
+                    client=trip.client if trip else client,
                     amount=payment.amount,
                     punto_venta=punto_venta,
                     tipo_cbte=tipo_cbte,
                     cae=cae,
                     cae_vencimiento=vencimiento_cae,
                 )
+                if trip:
+                    invoice.trips.add(trip)
 
                 payment.invoice = invoice
                 payment.factura_emitida = True  # <- Setea el campo solo si fue aprobada
@@ -151,8 +158,9 @@ class PaymentForm(forms.ModelForm):
             payment.save()
             if payment.invoice:
                 logger.info(f"Factura creada: {payment.invoice}")
-                if payment.invoice.trip:
-                    logger.info(f"Estado del viaje: {payment.invoice.trip.status}")
+                if payment.invoice.trips.exists():
+                    for trip in payment.invoice.trips.all():
+                        logger.info(f"Estado del viaje: {trip.status}")
 
         return payment
 

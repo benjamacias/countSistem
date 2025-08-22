@@ -41,11 +41,19 @@ class Client(models.Model):
         
     @property
     def total_facturado(self):
-        return Invoice.objects.filter(trip__client=self).aggregate(total=Sum("amount"))["total"] or 0
+        return (
+            Invoice.objects.filter(client=self)
+            .aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
 
     @property
     def total_pagado(self):
-        return Payment.objects.filter(invoice__trip__client=self).aggregate(total=Sum("amount"))["total"] or 0
+        return (
+            Payment.objects.filter(invoice__client=self)
+            .aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
 
     @property
     def total_restante(self):
@@ -193,7 +201,8 @@ class TripAddress(models.Model):
         return self.address
 
 class Invoice(models.Model):
-    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="invoices", null=True, blank=True)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
+    trips = models.ManyToManyField(Trip, related_name="invoices", blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 
