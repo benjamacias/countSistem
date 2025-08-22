@@ -1,6 +1,11 @@
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+GOOGLE_MAPS_API_KEY=os.getenv("GOOGLE_MAPS_API_KEY")
 SECRET_KEY = 'test-secret-key'
 DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']

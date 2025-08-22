@@ -41,11 +41,19 @@ class Client(models.Model):
         
     @property
     def total_facturado(self):
-        return Invoice.objects.filter(trip__client=self).aggregate(total=Sum("amount"))["total"] or 0
+        return (
+            Invoice.objects.filter(client=self)
+            .aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
 
     @property
     def total_pagado(self):
-        return Payment.objects.filter(invoice__trip__client=self).aggregate(total=Sum("amount"))["total"] or 0
+        return (
+            Payment.objects.filter(invoice__client=self)
+            .aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
 
     @property
     def total_restante(self):
@@ -100,6 +108,10 @@ class Driver(models.Model):
     phone = models.CharField(max_length=20, blank=True, null=True)
     license_number = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Número de licencia del conductor")
     license_expiry = models.DateField("Vencimiento de licencia", blank=True, null=True)
+    license_front_image = models.ImageField(upload_to="drivers/licenses/", null=True, blank=True)
+    license_back_image = models.ImageField(upload_to="drivers/licenses/", null=True, blank=True)
+    insurance_policy_pdf = models.FileField(upload_to="drivers/policy/", null=True, blank=True)
+    technical_doc_pdf = models.FileField(upload_to="drivers/technical/", null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} {self.surname or ''}"
@@ -137,6 +149,30 @@ class Vehicle(models.Model):
     price_per_km = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Precio por kilómetro del vehículo")
     def __str__(self):
         return self.plate
+
+
+class Trailer(models.Model):
+    license_plate = models.CharField(
+        "Licencia",
+        max_length=15,
+        unique=True,
+        validators=[validate_plate],
+    )
+    license_expiry = models.DateField("Vencimiento de licencia")
+    technical_id = models.CharField("Técnica", max_length=100)
+    technical_expiry = models.DateField("Vencimiento de técnica")
+    cargo_type = models.CharField("Tipo de carga", max_length=100)
+    homologation = models.BooleanField("Homologación", default=False)
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+
+        if self.license_expiry and self.license_expiry < timezone.now().date():
+            self.homologation = False
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.license_plate
 
 
 class Trip(models.Model):
@@ -193,7 +229,8 @@ class TripAddress(models.Model):
         return self.address
 
 class Invoice(models.Model):
-    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="invoices", null=True, blank=True)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
+    trips = models.ManyToManyField(Trip, related_name="invoices", blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 

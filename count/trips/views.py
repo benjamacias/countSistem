@@ -20,10 +20,11 @@ from django.db.models.functions import Concat
 from django.db.models import Value
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.template.loader import render_to_string
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from .forms import DriverForm, DriverAddressFormSet, DriverAdvanceFormSet, DriverAddressForm, DriverAdvanceForm, DriverAdvanceFormCreate
 from django.http import HttpResponse
+from django.core.mail import EmailMessage
 from django.views.generic.edit import UpdateView
 from .models import Driver, Vehicle, DriverAddress, DriverAdvance
 from django.conf import settings
@@ -227,11 +228,9 @@ def trip_complete(request, pk):
     trip.arrival_date = timezone.now()
     trip.save()
 
-    # Crear factura si no existe
-    invoice, created = Invoice.objects.get_or_create(
-        trip=trip,
-        defaults={"amount": trip.value}
-    )
+    # Crear factura
+    invoice = Invoice.objects.create(client=trip.client, amount=trip.value)
+    invoice.trips.add(trip)
     return redirect("trips:invoice_detail", pk=invoice.id)
 
 
@@ -250,7 +249,7 @@ def payment_create(request, pk):
 
     if request.method == "POST":
         form = PaymentForm(request.POST, initial={
-            "client": invoice.trip.client if invoice.trip else None
+            "client": invoice.client
         })
         if form.is_valid():
             amount = form.cleaned_data["amount"]
@@ -263,15 +262,16 @@ def payment_create(request, pk):
                 if getattr(form, "billing_error_message", None):
                     messages.warning(request, form.billing_error_message)
 
-                # Si el monto pagado cubre el total de la factura, actualizamos estado del viaje
-                if invoice.trip and invoice.remaining() <= 0:
-                    invoice.trip.status = "facturado"
-                    invoice.trip.save()
+                # Si el monto pagado cubre el total de la factura, actualizamos estado de los viajes
+                if invoice.remaining() <= 0:
+                    for t in invoice.trips.all():
+                        t.status = "facturado"
+                        t.save()
 
                 return redirect("trips:invoice_detail", invoice.id)
     else:
         form = PaymentForm(initial={
-            "client": invoice.trip.client if invoice.trip else None
+            "client": invoice.client
         })
 
     return render(
@@ -283,6 +283,57 @@ def payment_create(request, pk):
             "remaining": remaining,
         }
     )
+
+
+@login_required
+@require_POST
+def invoice_create_from_trips(request):
+    trip_ids = request.POST.getlist("trip_ids")
+    if not trip_ids:
+        messages.error(request, "No se seleccionaron viajes.")
+        return redirect("trips:trip_list")
+
+    trips = list(Trip.objects.filter(id__in=trip_ids).select_related("client"))
+    if not trips:
+        messages.error(request, "Viajes no válidos.")
+        return redirect("trips:trip_list")
+
+    client_ids = {t.client_id for t in trips}
+    if len(client_ids) > 1:
+        messages.error(request, "Todos los viajes deben pertenecer al mismo cliente.")
+        return redirect("trips:trip_list")
+
+    client = trips[0].client
+    total = sum(t.value for t in trips)
+    invoice = Invoice.objects.create(client=client, amount=total)
+    invoice.trips.add(*trips)
+
+    invoice_lines = "\n".join([f"Viaje #{t.id} - ${t.value}" for t in trips])
+    invoice_content = (
+        f"Factura #{invoice.id}\nCliente: {client}\nTotal: ${total}\n\nDetalle:\n{invoice_lines}"
+    )
+    shipping_content = "Carta de porte\n\n" + invoice_lines
+
+    if client.gmail:
+        email = EmailMessage(
+            subject=f"Factura #{invoice.id}",
+            body="Adjuntamos la factura y carta de porte.",
+            to=[client.gmail],
+        )
+        email.attach(
+            f"factura_{invoice.id}.txt", invoice_content, "text/plain"
+        )
+        email.attach(
+            f"carta_porte_{invoice.id}.txt", shipping_content, "text/plain"
+        )
+        email.send(fail_silently=True)
+
+    for trip in trips:
+        trip.status = "facturado"
+        trip.save()
+
+    messages.success(request, "Factura creada y enviada al cliente.")
+    return redirect("trips:invoice_detail", pk=invoice.id)
 
 @login_required
 def client_create(request):
@@ -408,7 +459,7 @@ def driver_edit(request, pk):
     driver = get_object_or_404(Driver, pk=pk)
 
     if request.method == "POST":
-        form = DriverForm(request.POST, instance=driver)
+        form = DriverForm(request.POST, request.FILES, instance=driver)
         if form.is_valid():
             form.save()
             return redirect("trips:drivers_list")  # redirige a la lista de choferes
@@ -433,7 +484,7 @@ def vehicle_create(request):
 @login_required
 def driver_create(request):
     if request.method == "POST":
-        form = DriverForm(request.POST)
+        form = DriverForm(request.POST, request.FILES)
         address_formset = DriverAddressFormSet(request.POST, prefix='addresses')
         advance_formset = DriverAdvanceFormSet(request.POST, prefix='advances')
 
@@ -524,27 +575,18 @@ class InvoiceListView(ListView):
     paginate_by = 6
 
     def get_queryset(self):
-        queryset = Invoice.objects.select_related("trip", "trip__client").order_by("-id")
+        queryset = Invoice.objects.select_related("client").prefetch_related("trips").order_by("-id")
         q = self.request.GET.get("q")
         if q:
             queryset = queryset.filter(
-                Q(trip__client__nombre__icontains=q) |
-                Q(trip__id__icontains=q)
-            )
+                Q(client__nombre__icontains=q) |
+                Q(trips__id__icontains=q)
+            ).distinct()
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        invoice_totals = {}
-
-        for invoice in context["invoices"]:
-            trip = invoice.trip
-            if hasattr(trip, "invoices"):
-                total = trip.invoices.aggregate(total=Sum("amount"))["total"] or 0
-            else:
-                total = invoice.amount
-            invoice_totals[invoice.id] = total
-
+        invoice_totals = {invoice.id: invoice.amount for invoice in context["invoices"]}
         context["invoice_totals"] = invoice_totals
         return context
     
