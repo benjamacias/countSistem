@@ -10,11 +10,17 @@
     <div class="col-md-8 col-lg-6">
 
       <h3 class="mb-4 text-center">
-        Pago para Factura #{{ invoice.id|stringformat:"05d" }}
+        {% if invoice.trips.exists %}
+          Pago para Factura #{{ invoice.id|stringformat:"05d" }}
+        {% else %}
+          Pago para Libre #{{ invoice.id|stringformat:"05d" }}
+        {% endif %}
       </h3>
+      {% if invoice.trips.exists %}
       <p class="text-center">
         Viajes: {% for t in invoice.trips.all %}#{{ t.id }}{% if not forloop.last %}, {% endif %}{% endfor %}
       </p>
+      {% endif %}
 
       <div class="alert alert-info text-center">
         <strong>Importe restante:</strong> ${{ remaining }}
