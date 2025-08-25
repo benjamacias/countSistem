@@ -13,7 +13,7 @@
 <ul class="list-group">
   {% for invoice in invoices %}
     <li class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#invoiceModal{{ invoice.id }}" style="cursor: pointer;">
-      <strong>#{{ invoice.id|stringformat:"05d" }}</strong> – {{ invoice.client }} – ${{ invoice.amount }}
+      <strong>{% if invoice.trips.exists %}#{{ invoice.id|stringformat:"05d" }}{% else %}Libre #{{ invoice.id|stringformat:"05d" }}{% endif %}</strong> – {{ invoice.client }} – ${{ invoice.amount }}
     </li>
 
     <!-- Modal -->
@@ -21,12 +21,14 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="invoiceModalLabel{{ invoice.id }}">Factura #{{ invoice.id }}</h5>
+            <h5 class="modal-title" id="invoiceModalLabel{{ invoice.id }}">{% if invoice.trips.exists %}Factura #{{ invoice.id }}{% else %}Libre #{{ invoice.id }}{% endif %}</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
             <p><strong>Cliente:</strong> {{ invoice.client }}</p>
+            {% if invoice.trips.exists %}
             <p><strong>Viajes:</strong> {% for t in invoice.trips.all %}#{{ t.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+            {% endif %}
             <p><strong>Total de pagos para esta factura:</strong> {{ invoice.payment_count }}</p>
             <p><strong>Monto total pagado:</strong> ${{ invoice.paid_total }}</p>
             <p><strong>Restante a pagar:</strong> ${{ invoice.remaining }}</p>
