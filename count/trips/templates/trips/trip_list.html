@@ -3,13 +3,37 @@
 {% load form_tags %}
 {% load widget_tweaks %}
 {% block title %}Viajes Dashboard{% endblock %}
+
 {% block content %}
 
+<style>
+  .trip-card{transition:transform .05s ease, box-shadow .1s ease, background-color .1s ease}
+  .trip-card:hover{transform:translateY(-1px)}
+  .trip-card.selected{background:#eef6ff; box-shadow:0 0 0 2px #0d6efd inset}
+  .trip-card .select-pill{
+    position:absolute; top:.5rem; right:.5rem; width:28px; height:28px; border-radius:50%;
+    background:#fff; border:2px solid #0d6efd; display:flex; align-items:center; justify-content:center
+  }
+  .trip-card.selected .select-pill{background:#0d6efd; color:#fff}
+  .sticky-actions{
+    position:fixed; left:0; right:0; bottom:0; z-index:1030;
+    background:#0d6efd; color:#fff; padding:.5rem 1rem; box-shadow:0 -2px 10px rgba(0,0,0,.1); display:none
+  }
+  .sticky-actions .count{font-weight:600}
+  .filter-row-top{display:flex; align-items:center; justify-content:space-between; gap:.5rem}
+</style>
+
 <div class="row">
-  <!-- Sidebar filtros -->
   <div class="col-md-3">
     <form method="get" class="p-3 border rounded bg-light">
-      <h6 class="fw-bold">Buscar</h6>
+      <div class="filter-row-top mb-2">
+        <h6 class="fw-bold m-0">Buscar</h6>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="toggleAll">
+          <label class="form-check-label small" for="toggleAll">Seleccionar todo</label>
+        </div>
+      </div>
+
       <input type="text" name="q" class="form-control mb-2" value="{{ request.GET.q }}" placeholder="Cliente, chofer...">
 
       <h6 class="fw-bold mt-3">Estado</h6>
@@ -33,257 +57,246 @@
     </form>
   </div>
 
-  <!-- Lista de viajes -->
   <div class="col-md-9">
     <form method="post" action="{% url 'trips:invoice_create_from_trips' %}" id="invoiceForm">
       {% csrf_token %}
     </form>
+
     {% for t in trips %}
-  <!-- Card clickeable -->
-  <div class="card mb-3 shadow-sm position-relative"
-       data-bs-toggle="modal"
-       data-bs-target="#tripModal{{ t.id }}"
-       style="cursor: pointer;">
-    {% if t.status != 'facturado' and t.status != 'cancelado' %}
-      <input class="form-check-input position-absolute top-0 end-0 m-2"
-             type="checkbox"
-             name="trip_ids"
-             value="{{ t.id }}"
-             id="tripSel{{ t.id }}"
-             form="invoiceForm"
-             onclick="event.stopPropagation();">
-    {% endif %}
-    <div class="card-body d-flex justify-content-between align-items-center">
-      <!-- Detalles básicos -->
-      <div>
-        <h5>Nro{{ t.id|stringformat:"05d" }}</h5>
-        <span class="badge 
-          {% if t.status == 'recibido' %}bg-success
-          {% elif t.status == 'pendiente' %}bg-warning text-dark
-          {% elif t.status == 'no_completado' %}bg-danger
-          {% elif t.status == 'facturado' %}bg-primary
-          {% else %}bg-secondary{% endif %}">
-          {{ t.get_status_display }}
-        </span>
-        <p>{{ t.client }} – {{ t.end_address }}</p>
-      </div>
-
-      <!-- Botón según estado -->
-      <div class="d-flex flex-column gap-2">
-
-        {% if t.status == 'pendiente' %}
-          <!-- Botón: Ingresar -->
-          <button type="button"
-                  class="btn btn-sm btn-primary w-100"
-                  onclick="event.stopPropagation();"
-                  data-bs-toggle="modal"
-                  data-bs-target="#confirmModal{{ t.id }}"
-                  title="Dar viaje por llegado">
-            <i class="bi bi-check2-circle me-1"></i> Ingresar
-          </button>
-
-          <!-- Botón: Ver en Maps -->
-          <button type="button"
-                  class="btn btn-sm btn-outline-info w-100"
-                  onclick="copyToClipboard('{% maps_url t %}')"
-                  title="Copiar enlace de Google Maps al portapapeles">
-            <i class="bi bi-clipboard me-1"></i> Copiar enlace de Maps
-          </button>
-
-          <!-- Botón: Cancelar viaje -->
-          <button type="button"
-                  class="btn btn-sm btn-outline-danger w-100"
-                  onclick="event.stopPropagation();"
-                  data-bs-toggle="modal"
-                  data-bs-target="#cancelModal{{ t.id }}"
-                  title="Cancelar este viaje">
-            <i class="bi bi-x-circle me-1"></i> Cancelar viaje
-          </button>
-
-        {% elif t.status == 'recibido' and t.first_invoice %}
-          <!-- Botón: Ver factura -->
-          <a class="btn btn-sm btn-outline-success w-100"
-            href="{% url 'trips:invoice_detail' t.first_invoice.id %}"
-            onclick="event.stopPropagation();"
-            title="Ver detalles de la factura">
-            <i class="bi bi-file-earmark-text me-1"></i> Ver factura
-          </a>
-        {% endif %}
-
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Modal principal con info del viaje -->
-  <div class="modal fade" id="tripModal{{ t.id }}" tabindex="-1" aria-labelledby="tripModalLabel{{ t.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Viaje #{{ t.id|stringformat:"05d" }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Detalles completos del viaje -->
-          <p><strong>Cliente:</strong> {{ t.client }}</p>
-          <p><strong>Chofer:</strong> {{ t.driver }}</p>
-          <p><strong>Vehículo:</strong> {{ t.vehicle }}</p>
-          <p><strong>Origen:</strong> {{ t.start_address }}</p>
-          <p><strong>Destino:</strong> {{ t.end_address }}</p>
-          <p><strong>Productos:</strong> {{ t.product }}</p>
-
-          {% if t.addresses.exists %}
-            <hr>
-            <p><strong>Direcciones intermedias:</strong></p>
-            <ul>
-              {% for addr in t.addresses.all %}
-                <li>{{ addr.order }} – {{ addr.address }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          <hr>
-          {% if t.status == 'recibido' %}
-            <p><strong>Kilos recibidos:</strong></p>
-            <ul>
-              <li>{{ t.received_weight }} kg</li>
-            </ul>
-            <p><strong>Kilos perdidos:</strong></p>
-            <ul>
-              <li>{{ t.delivered_weight }} kg</li>
-            </ul>
-          {% endif %}
-          <hr>
-          <p><strong>Estado:</strong> {{ t.get_status_display }}</p>
-          <p><strong>Valor:</strong> ${{ t.value }}</p>
-          <p><strong>Salida:</strong> {{ t.departure_date }}</p>
-          <p><strong>Llegada:</strong> {{ t.arrival_date }}</p>
-          <p><strong>Creado:</strong> {{ t.created_at }}</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-<!-- Modal de confirmación "Ingresar" -->
-<div class="modal fade" id="confirmModal{{ t.id }}" tabindex="-1" aria-labelledby="confirmModalLabel{{ t.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg">
-      <form method="post" action="{% url 'trips:trip_complete' t.id %}">
-        {% csrf_token %}
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="confirmModalLabel{{ t.id }}">
-            <i class="bi bi-check-circle-fill me-2"></i>Ingreso de Viaje #{{ t.id|stringformat:"05d" }}
-          </h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-
-        <div class="modal-body">
-          <p class="mb-3">
-            ¿Confirmás que el viaje fue recibido correctamente?
-          </p>
-
-          <div class="alert alert-info small">
-            <i class="bi bi-truck"></i> Peso originalmente registrado: 
-            <strong>{{ t.total_weight }} kg</strong>
-          </div>
-
-          <div class="mb-3">
-            <label for="kilos_recibidos_{{ t.id }}" class="form-label fw-semibold">
-              <i class="bi bi-box-seam me-1"></i> Kilos efectivamente recibidos
-            </label>
-            <input type="number"
-                  step="0.01"
-                  min="0"
-                  name="received_weight"
-                  id="kilos_recibidos_{{ t.id }}"
-                  class="form-control"
-                  required
-                  placeholder="Ej: {{ t.total_weight }}">
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
-            <i class="bi bi-x-circle me-1"></i> Cancelar
-          </button>
-          <button type="submit" class="btn btn-success">
-            <i class="bi bi-check-circle me-1"></i> Confirmar ingreso
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-  <!-- Modal de confirmación "Cancelar" -->
-  <div class="modal fade" id="cancelModal{{ t.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ t.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Cancelar viaje #{{ t.id }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          ¿Estás seguro de que querés cancelar este viaje? Esta acción no se puede deshacer.
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
-          <a href="{% url 'trips:trip_cancel' t.id %}" class="btn btn-danger">Sí, cancelar</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-{% endfor %}
-
-<button type="submit" class="btn btn-primary mt-2" form="invoiceForm">Facturar seleccionados</button>
-
-    <!-- Paginación -->
-{% if is_paginated %}
-<nav aria-label="Paginación de facturas">
-  <ul class="pagination justify-content-center mt-4">
-    {% if page_obj.has_previous %}
-      <li class="page-item">
-        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Anterior">
-          <span aria-hidden="true">&laquo;</span>
-        </a>
-      </li>
-    {% else %}
-      <li class="page-item disabled">
-        <span class="page-link">&laquo;</span>
-      </li>
-    {% endif %}
-
-    {% for num in page_obj.paginator.page_range %}
-      {% if page_obj.number == num %}
-        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-        <li class="page-item"><a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+    <div class="card mb-3 shadow-sm position-relative trip-card"
+         data-trip-id="{{ t.id }}"
+         data-selectable="{% if t.status != 'facturado' and t.status != 'cancelado' %}1{% else %}0{% endif %}"
+         style="cursor:pointer;">
+      {% if t.status != 'facturado' and t.status != 'cancelado' %}
+        <span class="select-pill"><i class="bi bi-check2"></i></span>
+        <input class="d-none"
+               type="checkbox"
+               name="trip_ids"
+               value="{{ t.id }}"
+               id="tripSel{{ t.id }}"
+               form="invoiceForm">
       {% endif %}
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-1">Nro{{ t.id|stringformat:"05d" }}</h5>
+          <span class="badge 
+            {% if t.status == 'recibido' %}bg-success
+            {% elif t.status == 'pendiente' %}bg-warning text-dark
+            {% elif t.status == 'no_completado' %}bg-danger
+            {% elif t.status == 'facturado' %}bg-primary
+            {% else %}bg-secondary{% endif %}">
+            {{ t.get_status_display }}
+          </span>
+          <p class="mb-0 mt-1">{{ t.client }} – {{ t.end_address }}</p>
+        </div>
+
+        <div class="d-flex flex-column gap-2">
+          <button type="button"
+                  class="btn btn-sm btn-outline-secondary w-100"
+                  onclick="event.stopPropagation();"
+                  data-bs-toggle="modal"
+                  data-bs-target="#tripModal{{ t.id }}">
+            <i class="bi bi-eye me-1"></i> Detalles
+          </button>
+
+          {% if t.status == 'pendiente' %}
+            <button type="button"
+                    class="btn btn-sm btn-primary w-100"
+                    onclick="event.stopPropagation();"
+                    data-bs-toggle="modal"
+                    data-bs-target="#confirmModal{{ t.id }}"
+                    title="Dar viaje por llegado">
+              <i class="bi bi-check2-circle me-1"></i> Ingresar
+            </button>
+
+            <button type="button"
+                    class="btn btn-sm btn-outline-info w-100"
+                    onclick="copyToClipboard('{% maps_url t %}'); event.stopPropagation();"
+                    title="Copiar enlace de Google Maps al portapapeles">
+              <i class="bi bi-clipboard me-1"></i> Copiar Maps
+            </button>
+
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger w-100"
+                    onclick="event.stopPropagation();"
+                    data-bs-toggle="modal"
+                    data-bs-target="#cancelModal{{ t.id }}"
+                    title="Cancelar este viaje">
+              <i class="bi bi-x-circle me-1"></i> Cancelar
+            </button>
+
+          {% elif t.status == 'recibido' and t.first_invoice %}
+            <a class="btn btn-sm btn-outline-success w-100"
+              href="{% url 'trips:invoice_detail' t.first_invoice.id %}"
+              onclick="event.stopPropagation();"
+              title="Ver detalles de la factura">
+              <i class="bi bi-file-earmark-text me-1"></i> Ver factura
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="tripModal{{ t.id }}" tabindex="-1" aria-labelledby="tripModalLabel{{ t.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Viaje #{{ t.id|stringformat:"05d" }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Cliente:</strong> {{ t.client }}</p>
+            <p><strong>Chofer:</strong> {{ t.driver }}</p>
+            <p><strong>Vehículo:</strong> {{ t.vehicle }}</p>
+            <p><strong>Origen:</strong> {{ t.start_address }}</p>
+            <p><strong>Destino:</strong> {{ t.end_address }}</p>
+            <p><strong>Productos:</strong> {{ t.product }}</p>
+
+            {% if t.addresses.exists %}
+              <hr>
+              <p><strong>Direcciones intermedias:</strong></p>
+              <ul class="mb-0">
+                {% for addr in t.addresses.all %}
+                  <li>{{ addr.order }} – {{ addr.address }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            <hr>
+            {% if t.status == 'recibido' %}
+              <p><strong>Kilos recibidos:</strong> {{ t.received_weight }} kg</p>
+              <p><strong>Kilos perdidos:</strong> {{ t.delivered_weight }} kg</p>
+            {% endif %}
+            <hr>
+            <p><strong>Estado:</strong> {{ t.get_status_display }}</p>
+            <p><strong>Valor:</strong> ${{ t.value }}</p>
+            <p><strong>Salida:</strong> {{ t.departure_date }}</p>
+            <p><strong>Llegada:</strong> {{ t.arrival_date }}</p>
+            <p class="mb-0"><strong>Creado:</strong> {{ t.created_at }}</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="confirmModal{{ t.id }}" tabindex="-1" aria-labelledby="confirmModalLabel{{ t.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <form method="post" action="{% url 'trips:trip_complete' t.id %}">
+            {% csrf_token %}
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title" id="confirmModalLabel{{ t.id }}">
+                <i class="bi bi-check-circle-fill me-2"></i>Ingreso de Viaje #{{ t.id|stringformat:"05d" }}
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+              <p class="mb-3">¿Confirmás que el viaje fue recibido correctamente?</p>
+
+              <div class="alert alert-info small">
+                <i class="bi bi-truck"></i> Peso originalmente registrado: <strong>{{ t.total_weight }} kg</strong>
+              </div>
+
+              <div class="mb-3">
+                <label for="kilos_recibidos_{{ t.id }}" class="form-label fw-semibold">
+                  <i class="bi bi-box-seam me-1"></i> Kilos efectivamente recibidos
+                </label>
+                <input type="number"
+                      step="0.01"
+                      min="0"
+                      name="received_weight"
+                      id="kilos_recibidos_{{ t.id }}"
+                      class="form-control"
+                      required
+                      placeholder="Ej: {{ t.total_weight }}">
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <i class="bi bi-x-circle me-1"></i> Cancelar
+              </button>
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle me-1"></i> Confirmar ingreso
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="cancelModal{{ t.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ t.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Cancelar viaje #{{ t.id }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            ¿Estás seguro de que querés cancelar este viaje? Esta acción no se puede deshacer.
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
+            <a href="{% url 'trips:trip_cancel' t.id %}" class="btn btn-danger">Sí, cancelar</a>
+          </div>
+        </div>
+      </div>
+    </div>
     {% endfor %}
 
-    {% if page_obj.has_next %}
-      <li class="page-item">
-        <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Siguiente">
-          <span aria-hidden="true">&raquo;</span>
-        </a>
-      </li>
-    {% else %}
-      <li class="page-item disabled">
-        <span class="page-link">&raquo;</span>
-      </li>
+
+    {% if is_paginated %}
+    <nav aria-label="Paginación de facturas">
+      <ul class="pagination justify-content-center mt-4">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.orden %}orden={{ request.GET.orden }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
     {% endif %}
-  </ul>
-</nav>
-{% endif %}
   </div>
 </div>
 
+<div class="sticky-actions" id="bulkBar">
+  <div class="container d-flex align-items-center justify-content-between">
+    <div><span class="count" id="selCount">0</span> seleccionados</div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-light btn-sm" form="invoiceForm">Facturar seleccionados</button>
+      <button type="button" class="btn btn-outline-light btn-sm" id="clearSel">Limpiar</button>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
+
 {% block scripts %}
+{{ block.super }}
 <script>
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function () {
@@ -294,4 +307,63 @@
   }
 </script>
 
+<script>
+(function(){
+  const cards=[...document.querySelectorAll('.trip-card')];
+  const bulkBar=document.getElementById('bulkBar');
+  const selCount=document.getElementById('selCount');
+  const toggleAll=document.getElementById('toggleAll');
+  const clearBtn=document.getElementById('clearSel');
+
+  function isSelectable(card){
+    const v=card.dataset.selectable;
+    return v==='True'||v==='true'||v==='1';
+  }
+  function checkbox(card){ return card.querySelector('input[type="checkbox"][name="trip_ids"]'); }
+
+  function setSelected(card, on){
+    if(!isSelectable(card)) return;
+    const cb=checkbox(card);
+    if(!cb) return;
+    cb.checked=!!on;
+    card.classList.toggle('selected', !!on);
+    updateBar();
+  }
+
+  function toggle(card){ setSelected(card, !(checkbox(card)?.checked)); }
+
+  function updateBar(){
+    const total=document.querySelectorAll('input[name="trip_ids"]:checked').length;
+    selCount.textContent=total;
+    bulkBar.style.display= total>0 ? 'block' : 'none';
+    if(toggleAll){
+      const avail=document.querySelectorAll('.trip-card[data-selectable="1"], .trip-card[data-selectable="True"], .trip-card[data-selectable="true"]').length;
+      toggleAll.checked = total>0 && total===avail;
+      toggleAll.indeterminate = total>0 && total<avail;
+    }
+  }
+
+  cards.forEach(card=>{
+    card.addEventListener('click', e=>{
+      const tag=e.target.tagName.toLowerCase();
+      if(['button','a','input','label','i','svg','path'].includes(tag)) return;
+      toggle(card);
+    });
+  });
+
+  if(toggleAll){
+    toggleAll.addEventListener('change', e=>{
+      cards.forEach(c=> setSelected(c, e.target.checked));
+    });
+  }
+
+  if(clearBtn){
+    clearBtn.addEventListener('click', ()=>{
+      cards.forEach(c=> setSelected(c, false));
+    });
+  }
+
+  updateBar();
+})();
+</script>
 {% endblock %}
