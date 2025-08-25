@@ -139,6 +139,31 @@ class Vehicle(models.Model):
         return self.plate
 
 
+class Trailer(models.Model):
+    license_plate = models.CharField(
+        "Licencia",
+        max_length=15,
+        unique=True,
+        validators=[validate_plate],
+    )
+    license_expiry = models.DateField("Vencimiento de licencia")
+    technical_id = models.CharField("Técnica", max_length=100)
+    technical_expiry = models.DateField("Vencimiento de técnica")
+    cargo_type = models.CharField("Tipo de carga", max_length=100)
+    homologation = models.BooleanField("Homologación", default=False)
+    image = models.ImageField(upload_to="trailers/", null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+
+        if self.license_expiry and self.license_expiry < timezone.now().date():
+            self.homologation = False
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.license_plate
+
+
 class Trip(models.Model):
 
     STATUS_CHOICES = [

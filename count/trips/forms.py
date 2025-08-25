@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Trip, TripAddress, Payment
-from .models import Client, Driver, Vehicle, Asesoramiento, Invoice, Product, DriverAddress, DriverAdvance, BillingError
+from .models import Client, Driver, Vehicle, Trailer, Asesoramiento, Invoice, Product, DriverAddress, DriverAdvance, BillingError
 import re
 from django import forms
 from django.core.exceptions import ValidationError
@@ -201,6 +201,35 @@ class VehicleForm(forms.ModelForm):
             raise ValidationError("Esa patente ya está registrada.")
 
         return plate
+
+
+class TrailerForm(forms.ModelForm):
+    class Meta:
+        model = Trailer
+        fields = [
+            "license_plate",
+            "license_expiry",
+            "technical_id",
+            "technical_expiry",
+            "cargo_type",
+            "homologation",
+            "image",
+        ]
+        widgets = {
+            "license_plate": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej: ABC123"}
+            ),
+            "license_expiry": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "technical_id": forms.TextInput(attrs={"class": "form-control"}),
+            "technical_expiry": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "cargo_type": forms.TextInput(attrs={"class": "form-control"}),
+            "homologation": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "image": forms.FileInput(attrs={"class": "form-control"}),
+        }
 
 class AssignVehiclesForm(forms.ModelForm):
     vehicles = forms.ModelMultipleChoiceField(

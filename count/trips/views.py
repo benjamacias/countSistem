@@ -4,8 +4,8 @@ from django.views.generic import ListView, CreateView, DetailView
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy
 from django.db import transaction
-from .models import Trip, Invoice, Client, Driver, Vehicle, Product
-from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, AsesoramientoForm
+from .models import Trip, Invoice, Client, Driver, Vehicle, Trailer, Product
+from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, TrailerForm, AsesoramientoForm
 from .forms import DriverWithVehicleForm, ProductForm
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -372,42 +372,90 @@ def vehicle_create(request):
         form = VehicleForm()
     return render(request, "vehicles/vehicle_form.html", {"form": form})
 
+
+@login_required
+def trailer_create(request):
+    if request.method == "POST":
+        form = TrailerForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect("trips:drivers_list")
+    else:
+        form = TrailerForm()
+    return render(
+        request,
+        "trailers/trailer_form.html",
+        {"form": form, "title": "Crear Acoplado"},
+    )
+
+
+@login_required
+def trailer_update(request, pk):
+    trailer = get_object_or_404(Trailer, pk=pk)
+    if request.method == "POST":
+        form = TrailerForm(request.POST, request.FILES, instance=trailer)
+        if form.is_valid():
+            form.save()
+            return redirect("trips:drivers_list")
+    else:
+        form = TrailerForm(instance=trailer)
+    return render(
+        request,
+        "trailers/trailer_form.html",
+        {"form": form, "title": "Editar Acoplado"},
+    )
+
 @login_required
 def driver_create(request):
     if request.method == "POST":
         form = DriverForm(request.POST)
-        address_formset = DriverAddressFormSet(request.POST, prefix='addresses')
-        advance_formset = DriverAdvanceFormSet(request.POST, prefix='advances')
+        address_formset = DriverAddressFormSet(
+            request.POST, queryset=DriverAddress.objects.none(), prefix="addresses"
+        )
+        advance_formset = DriverAdvanceFormSet(
+            request.POST, queryset=DriverAdvance.objects.none(), prefix="advances"
+        )
 
         if form.is_valid() and address_formset.is_valid() and advance_formset.is_valid():
-            driver = form.save()
+            try:
+                driver = form.save()
 
-            # Asignar vehículos seleccionados
-            vehicles = form.cleaned_data.get("vehicles")
-            if vehicles:
-                vehicles.update(driver=driver)
+                # Asignar vehículos seleccionados
+                vehicles = form.cleaned_data.get("vehicles")
+                if vehicles:
+                    vehicles.update(driver=driver)
 
-            # Guardar direcciones
-            addresses = address_formset.save(commit=False)
-            for address in addresses:
-                address.driver = driver
-                address.save()
-            for obj in address_formset.deleted_objects:
-                obj.delete()
+                # Guardar direcciones
+                addresses = address_formset.save(commit=False)
+                for address in addresses:
+                    address.driver = driver
+                    address.save()
+                for obj in address_formset.deleted_objects:
+                    obj.delete()
 
-            # Guardar anticipos
-            advances = advance_formset.save(commit=False)
-            for advance in advances:
-                advance.driver = driver
-                advance.save()
-            for obj in advance_formset.deleted_objects:
-                obj.delete()
+                # Guardar anticipos
+                advances = advance_formset.save(commit=False)
+                for advance in advances:
+                    advance.driver = driver
+                    advance.save()
+                for obj in advance_formset.deleted_objects:
+                    obj.delete()
 
-            return redirect("trips:drivers_list")
+                return redirect("trips:drivers_list")
+            except Exception as e:
+                print(f"Error al guardar el conductor: {e}")
+        else:
+            print("Errores en formulario de conductor:", form.errors)
+            print("Errores en direcciones:", address_formset.errors)
+            print("Errores en anticipos:", advance_formset.errors)
     else:
         form = DriverForm()
-        address_formset = DriverAddressFormSet(queryset=DriverAddress.objects.none(), prefix='addresses')
-        advance_formset = DriverAdvanceFormSet(queryset=DriverAdvance.objects.none(), prefix='advances')
+        address_formset = DriverAddressFormSet(
+            queryset=DriverAddress.objects.none(), prefix="addresses"
+        )
+        advance_formset = DriverAdvanceFormSet(
+            queryset=DriverAdvance.objects.none(), prefix="advances"
+        )
 
     return render(request, "drivers/driver_form.html", {
         "form": form,
