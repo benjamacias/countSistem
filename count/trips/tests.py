@@ -16,6 +16,7 @@ from trips.models import (
     Product,
     Trip,
     Trailer,
+    DriverAdvance,
 )
 
 class ValidatePlateTests(TestCase):
@@ -204,6 +205,25 @@ class DriverCreateViewTests(TestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Driver.objects.filter(name="John").exists())
+
+    def test_can_create_driver_with_empty_advance_form(self):
+        self.client.force_login(self.user)
+        url = reverse("trips:driver_create")
+        data = {
+            "name": "Max",
+            **self._formset_data("addresses"),
+            **self._formset_data("advances"),
+        }
+        data["advances-TOTAL_FORMS"] = "1"
+        data["advances-0-id"] = ""
+        data["advances-0-driver"] = ""
+        data["advances-0-category"] = ""
+        data["advances-0-amount"] = ""
+        data["advances-0-description"] = ""
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Driver.objects.filter(name="Max").exists())
+        self.assertEqual(DriverAdvance.objects.count(), 0)
 
     def test_invalid_driver_prints_errors(self):
         self.client.force_login(self.user)
