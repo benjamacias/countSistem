@@ -293,7 +293,17 @@ def invoice_create_from_trips(request):
         messages.error(request, "No se seleccionaron viajes.")
         return redirect("trips:trip_list")
 
-    trips = list(Trip.objects.filter(id__in=trip_ids).select_related("client"))
+    trips_qs = Trip.objects.filter(id__in=trip_ids).select_related("client")
+    invalid_status = ["facturado", "cancelado"]
+    invalid_trips = trips_qs.filter(status__in=invalid_status)
+    if invalid_trips.exists():
+        messages.error(
+            request,
+            "No se pueden seleccionar viajes facturados o cancelados.",
+        )
+        return redirect("trips:trip_list")
+
+    trips = list(trips_qs)
     if not trips:
         messages.error(request, "Viajes no válidos.")
         return redirect("trips:trip_list")
