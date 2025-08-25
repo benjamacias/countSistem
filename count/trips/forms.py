@@ -291,16 +291,18 @@ class DriverAdvanceForm(forms.ModelForm):
     )
 
     category = forms.ChoiceField(
-        choices=DriverAdvance.AdvanceCategory.choices,
+        choices=[("", "---------")] + list(DriverAdvance.AdvanceCategory.choices),
         label="Categoría",
-        widget=forms.Select(attrs={"class": "form-select"})
+        widget=forms.Select(attrs={"class": "form-select"}),
+        required=False,
     )
 
     amount = forms.DecimalField(
         label="Monto",
         max_digits=10,
         decimal_places=2,
-        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej. 5000.00"})
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej. 5000.00"}),
+        required=False,
     )
 
     description = forms.CharField(
@@ -312,6 +314,20 @@ class DriverAdvanceForm(forms.ModelForm):
     class Meta:
         model = DriverAdvance
         fields = ["driver", "category", "amount", "description"]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        category = cleaned_data.get("category")
+        amount = cleaned_data.get("amount")
+        description = cleaned_data.get("description")
+
+        if category or amount or description:
+            if not category:
+                self.add_error("category", "Este campo es obligatorio.")
+            if not amount:
+                self.add_error("amount", "Este campo es obligatorio.")
+
+        return cleaned_data
 
 
 class DriverAdvanceFormCreate(forms.ModelForm):
@@ -445,8 +461,10 @@ class CartaPorteForm(forms.Form):
     def __init__(self, *args, client=None, **kwargs):
         super().__init__(*args, **kwargs)
         if client:
-            self.fields["invoice"].queryset = Invoice.objects.filter(
-                Q(trip__client=client) | Q(trip__isnull=True)
+            self.fields["invoice"].queryset = (
+                Invoice.objects.filter(
+                    Q(trips__client=client) | Q(trips__isnull=True)
+                ).distinct()
             )
 
 

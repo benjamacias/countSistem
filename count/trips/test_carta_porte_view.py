@@ -27,7 +27,8 @@ class CartaPorteViewTests(TestCase):
             total_weight=1,
             value=100,
         )
-        self.invoice = Invoice.objects.create(trip=self.trip, amount=100)
+        self.invoice = Invoice.objects.create(amount=100)
+        self.invoice.trips.add(self.trip)
         self.invoice_no_trip = Invoice.objects.create(amount=50)
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
@@ -64,7 +65,7 @@ class CartaPorteViewTests(TestCase):
         response = self.client.post(url, data, follow=True)
         self.assertRedirects(response, reverse('trips:invoice_detail', args=[self.invoice_no_trip.id]))
         self.invoice_no_trip.refresh_from_db()
-        trip = self.invoice_no_trip.trip
+        trip = self.invoice_no_trip.trips.first()
         self.assertIsNotNone(trip)
         self.assertEqual(trip.start_address, "o")
         self.assertEqual(trip.end_address, "d")
