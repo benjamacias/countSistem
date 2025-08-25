@@ -7,8 +7,12 @@
     <div class="col-lg-8">
 
       <div class="card shadow-sm p-4 mb-4 border-0 bg-light">
+        {% if invoice.trips.exists %}
         <h3 class="mb-3">Factura #{{ invoice.id|stringformat:"05d" }}</h3>
         <p><strong>Viajes:</strong> {% for t in invoice.trips.all %}#{{ t.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        {% else %}
+        <h3 class="mb-3">Libre #{{ invoice.id|stringformat:"05d" }}</h3>
+        {% endif %}
 
         <div class="row mb-3">
           <div class="col-md-6">
@@ -21,6 +25,10 @@
             <p><strong>Cliente:</strong> {{ invoice.client }}</p>
           </div>
         </div>
+
+        {% if invoice.description %}
+        <p><strong>Descripción:</strong> {{ invoice.description }}</p>
+        {% endif %}
 
         {% if invoice.remaining > 0 %}
           <a class="btn btn-primary mb-3" href="{% url 'trips:payment_create' invoice.id %}">

@@ -235,6 +235,7 @@ class Invoice(models.Model):
     trips = models.ManyToManyField(Trip, related_name="invoices", blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
+    description = models.TextField("Descripción", blank=True)
 
     # Nuevos campos AFIP
     punto_venta = models.PositiveIntegerField(default=1)
