@@ -425,7 +425,7 @@ def carta_porte_invoice(request, client_id):
                     status="recibido",
                     arrival_date=timezone.now(),
                 )
-                invoice.trip = trip
+                invoice.trips.add(trip)
 
             invoice.save()
             if client.gmail:

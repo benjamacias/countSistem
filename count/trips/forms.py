@@ -461,8 +461,10 @@ class CartaPorteForm(forms.Form):
     def __init__(self, *args, client=None, **kwargs):
         super().__init__(*args, **kwargs)
         if client:
-            self.fields["invoice"].queryset = Invoice.objects.filter(
-                Q(trip__client=client) | Q(trip__isnull=True)
+            self.fields["invoice"].queryset = (
+                Invoice.objects.filter(
+                    Q(trips__client=client) | Q(trips__isnull=True)
+                ).distinct()
             )
 
 
