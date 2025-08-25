@@ -35,6 +35,18 @@
 
   <!-- Lista de viajes -->
   <div class="col-md-9">
+    <form method="post" action="{% url 'trips:invoice_create_from_trips' %}" class="mb-4">
+      {% csrf_token %}
+      <div class="d-flex flex-wrap">
+        {% for t in trips %}
+          <div class="form-check me-2">
+            <input class="form-check-input" type="checkbox" name="trip_ids" value="{{ t.id }}" id="tripSel{{ t.id }}">
+            <label class="form-check-label" for="tripSel{{ t.id }}">#{{ t.id }}</label>
+          </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary mt-2">Facturar seleccionados</button>
+    </form>
     {% for t in trips %}
   <!-- Card clickeable -->
   <div class="card mb-3 shadow-sm"
@@ -143,10 +155,6 @@
           <hr>
           <p><strong>Estado:</strong> {{ t.get_status_display }}</p>
           <p><strong>Valor:</strong> ${{ t.value }}</p>
-          {% if t.invoice %}
-            <p><strong>Pagado:</strong> ${{ t.invoice.paid_total }}</p>
-            <p><strong>Restante:</strong> ${{ t.invoice.remaining }}</p>
-          {% endif %}
           <p><strong>Salida:</strong> {{ t.departure_date }}</p>
           <p><strong>Llegada:</strong> {{ t.arrival_date }}</p>
           <p><strong>Creado:</strong> {{ t.created_at }}</p>

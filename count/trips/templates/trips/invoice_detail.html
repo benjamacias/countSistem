@@ -7,7 +7,8 @@
     <div class="col-lg-8">
 
       <div class="card shadow-sm p-4 mb-4 border-0 bg-light">
-        <h3 class="mb-3">Factura del Viaje #{{ invoice.trip.id|stringformat:"05d" }}</h3>
+        <h3 class="mb-3">Factura #{{ invoice.id|stringformat:"05d" }}</h3>
+        <p><strong>Viajes:</strong> {% for t in invoice.trips.all %}#{{ t.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
 
         <div class="row mb-3">
           <div class="col-md-6">
@@ -17,12 +18,7 @@
           </div>
           <div class="col-md-6">
             <p><strong>Fecha:</strong> {{ invoice.created_at|date:"d/m/Y" }}</p>
-            <p><strong>Cliente:</strong> {{ invoice.trip.client }}</p>
-            {% if invoice.trip.driver %}
-              <p><strong>Chofer:</strong> {{ invoice.trip.driver }}</p>
-            {% else %}
-              <p class="text-muted">Sin chofer asignado</p>
-            {% endif %}
+            <p><strong>Cliente:</strong> {{ invoice.client }}</p>
           </div>
         </div>
 

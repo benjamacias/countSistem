@@ -220,3 +220,4 @@ class DriverCreateViewTests(TestCase):
         output = buf.getvalue()
         self.assertIn("Errores en formulario de conductor", output)
 
+

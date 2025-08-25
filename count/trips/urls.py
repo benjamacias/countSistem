@@ -36,6 +36,7 @@ urlpatterns = [
     path("invoices/", InvoiceListView.as_view(), name="invoice_list"),
     path("invoice/<int:pk>/", InvoiceDetailView.as_view(), name="invoice_detail"),
     path("invoice/<int:pk>/pay/", views.payment_create, name="payment_create"),
+    path("invoices/create/", views.invoice_create_from_trips, name="invoice_create_from_trips"),
     path("nuevo/<int:driver_id>/", DriverAdvanceCreateView.as_view(), name="create"),
     path("lista/", DriverAdvanceListView.as_view(), name="list"),
 
@@ -44,6 +45,9 @@ urlpatterns = [
     path("clients/new/", views.client_create, name="client_create"),
     path("clientes/<int:pk>/editar/", views.client_update, name="client_update"),
     path("clients/<int:cliente_id>/asesoramiento/", views.asesoramiento_create, name="asesoramiento_create"),
+    path("clients/<int:client_id>/carta-porte/", views.carta_porte_invoice, name="carta_porte_invoice"),
+    path("carta-porte/", views.carta_porte_start, name="carta_porte_start"),
+
 
     # Conductores
     path("drivers/", DriverListView.as_view(), name="drivers_list"),
