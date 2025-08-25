@@ -455,7 +455,9 @@ DriverAdvanceFormSet = modelformset_factory(
 
 
 class CartaPorteForm(forms.Form):
-    invoice = forms.ModelChoiceField(queryset=Invoice.objects.none(), label="Factura")
+    invoice = forms.ModelChoiceField(
+        queryset=Invoice.objects.none(), label="Factura", required=False
+    )
     ctg = forms.CharField(label="Número CTG")
 
     def __init__(self, *args, client=None, **kwargs):
