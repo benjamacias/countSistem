@@ -286,6 +286,26 @@ def payment_create(request, pk):
 
 
 @login_required
+def free_invoice_create(request):
+    if request.method == "POST":
+        form = PaymentForm(request.POST)
+        if form.is_valid():
+            payment = form.save()
+            if not payment.invoice:
+                invoice = Invoice.objects.create(
+                    client=form.cleaned_data["client"],
+                    amount=payment.amount,
+                )
+                payment.invoice = invoice
+                payment.save()
+            return redirect("trips:invoice_detail", pk=payment.invoice.id)
+    else:
+        form = PaymentForm()
+
+    return render(request, "trips/free_invoice_form.html", {"form": form})
+
+
+@login_required
 @require_POST
 def invoice_create_from_trips(request):
     trip_ids = request.POST.getlist("trip_ids")
