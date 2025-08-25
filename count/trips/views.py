@@ -397,11 +397,12 @@ def carta_porte_invoice(request, client_id):
     if request.method == "POST":
         form = CartaPorteForm(request.POST, client=client)
         if form.is_valid():
-            invoice = form.cleaned_data["invoice"]
+            invoice = form.cleaned_data.get("invoice")
             ctg = form.cleaned_data["ctg"]
             data = obtener_carta_porte(ctg)
-            invoice.carta_porte_ctg = ctg
-            invoice.carta_porte_pdf = data.get("pdf")
+            if invoice:
+                invoice.carta_porte_ctg = ctg
+                invoice.carta_porte_pdf = data.get("pdf")
 
             action = request.POST.get("action")
             if action == "create_trip":
@@ -425,9 +426,11 @@ def carta_porte_invoice(request, client_id):
                     status="recibido",
                     arrival_date=timezone.now(),
                 )
-                invoice.trips.add(trip)
+                if invoice:
+                    invoice.trips.add(trip)
 
-            invoice.save()
+            if invoice:
+                invoice.save()
             if client.gmail:
                 email = EmailMessage(
                     subject="Carta de Porte",
@@ -438,10 +441,18 @@ def carta_porte_invoice(request, client_id):
                     email.attach("carta_porte.pdf", data["pdf"], "application/pdf")
                 email.send(fail_silently=True)
             if action == "create_trip":
-                messages.success(request, "Viaje generado y Carta de Porte vinculada.")
+                if invoice:
+                    messages.success(request, "Viaje generado y Carta de Porte vinculada.")
+                else:
+                    messages.success(request, "Viaje generado y Carta de Porte enviada al cliente.")
             else:
-                messages.success(request, "Carta de Porte vinculada y enviada al cliente.")
-            return redirect("trips:invoice_detail", invoice.pk)
+                if invoice:
+                    messages.success(request, "Carta de Porte vinculada y enviada al cliente.")
+                else:
+                    messages.success(request, "Carta de Porte enviada al cliente.")
+            if invoice:
+                return redirect("trips:invoice_detail", invoice.pk)
+            return redirect("trips:trip_list")
     else:
         form = CartaPorteForm(client=client)
     return render(request, "trips/carta_porte_form.html", {"form": form, "client": client})

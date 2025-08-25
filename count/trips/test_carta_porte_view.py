@@ -27,9 +27,9 @@ class CartaPorteViewTests(TestCase):
             total_weight=1,
             value=100,
         )
-        self.invoice = Invoice.objects.create(amount=100)
+        self.invoice = Invoice.objects.create(amount=100, client=self.client_obj)
         self.invoice.trips.add(self.trip)
-        self.invoice_no_trip = Invoice.objects.create(amount=50)
+        self.invoice_no_trip = Invoice.objects.create(amount=50, client=self.client_obj)
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     @patch('trips.views.obtener_carta_porte')
@@ -74,4 +74,18 @@ class CartaPorteViewTests(TestCase):
         self.assertEqual(trip.driver, self.driver)
         self.assertEqual(len(mail.outbox), 1)
         self.assertTrue(mail.outbox[0].attachments)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    @patch('trips.views.obtener_carta_porte')
+    def test_allows_carta_porte_without_invoice(self, mock_obtener):
+        mock_obtener.return_value = {
+            "estado": "v", "origen": "o", "destino": "d", "patente": "p", "pdf": b"pdf"
+        }
+        url = reverse('trips:carta_porte_invoice', args=[self.client_obj.id])
+        data = {"ctg": "123"}
+        response = self.client.post(url, data, follow=True)
+        self.assertRedirects(response, reverse('trips:trip_list'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(mail.outbox[0].attachments)
+        self.assertFalse(Invoice.objects.filter(carta_porte_ctg="123").exists())
 
