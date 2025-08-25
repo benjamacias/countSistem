@@ -61,6 +61,10 @@ urlpatterns = [
     path("vehicles/", VehicleListView.as_view(), name="vehicles_list"),
     path("vehicles/new/", views.vehicle_create, name="vehicle_create"),
 
+    # Trailers
+    path("trailers/new/", views.trailer_create, name="trailer_create"),
+    path("trailers/<int:pk>/edit/", views.trailer_update, name="trailer_update"),
+
     #Productos
     path('productos/', views.product_list, name='product_list'),
     path('productos/nuevo/', views.product_create, name='product_create'),

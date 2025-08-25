@@ -163,6 +163,8 @@ class Trailer(models.Model):
     technical_expiry = models.DateField("Vencimiento de técnica")
     cargo_type = models.CharField("Tipo de carga", max_length=100)
     homologation = models.BooleanField("Homologación", default=False)
+    image = models.ImageField(upload_to="trailers/", null=True, blank=True)
+
 
     def save(self, *args, **kwargs):
         from django.utils import timezone
