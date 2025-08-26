@@ -29,6 +29,10 @@
             {% if invoice.trips.exists %}
             <p><strong>Viajes:</strong> {% for t in invoice.trips.all %}#{{ t.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
             {% endif %}
+            {% if invoice.description %}
+            <p><strong>Descripción:</strong> {{ invoice.description }}</p>
+            {% endif %}
+
             <p><strong>Total de pagos para esta factura:</strong> {{ invoice.payment_count }}</p>
             <p><strong>Monto total pagado:</strong> ${{ invoice.paid_total }}</p>
             <p><strong>Restante a pagar:</strong> ${{ invoice.remaining }}</p>

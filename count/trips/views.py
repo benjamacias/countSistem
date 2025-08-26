@@ -5,7 +5,17 @@ from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy
 from django.db import transaction
 from .models import Trip, Invoice, Client, Driver, Vehicle, Trailer, Product
-from .forms import TripForm, TripAddressFormSet, PaymentForm, ClientForm, DriverForm, VehicleForm, TrailerForm, AsesoramientoForm
+from .forms import (
+    TripForm,
+    TripAddressFormSet,
+    PaymentForm,
+    FreeInvoiceForm,
+    ClientForm,
+    DriverForm,
+    VehicleForm,
+    TrailerForm,
+    AsesoramientoForm,
+)
 from .forms import DriverWithVehicleForm, ProductForm
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -288,19 +298,20 @@ def payment_create(request, pk):
 @login_required
 def free_invoice_create(request):
     if request.method == "POST":
-        form = PaymentForm(request.POST)
+        form = FreeInvoiceForm(request.POST)
         if form.is_valid():
             payment = form.save()
             if not payment.invoice:
                 invoice = Invoice.objects.create(
                     client=form.cleaned_data["client"],
                     amount=payment.amount,
+                    description=form.cleaned_data.get("description", ""),
                 )
                 payment.invoice = invoice
                 payment.save()
             return redirect("trips:invoice_detail", pk=payment.invoice.id)
     else:
-        form = PaymentForm()
+        form = FreeInvoiceForm()
 
     return render(request, "trips/free_invoice_form.html", {"form": form})
 
