@@ -136,6 +136,7 @@ class PaymentForm(forms.ModelForm):
                 invoice = Invoice.objects.create(
                     client=trip.client if trip else client,
                     amount=payment.amount,
+                    description=self.cleaned_data.get("description", ""),
                     punto_venta=punto_venta,
                     tipo_cbte=tipo_cbte,
                     cae=cae,
@@ -166,6 +167,14 @@ class PaymentForm(forms.ModelForm):
                         logger.info(f"Estado del viaje: {trip.status}")
 
         return payment
+
+
+class FreeInvoiceForm(PaymentForm):
+    description = forms.CharField(
+        label="Descripción",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control"})
+    )
 
 
 class ClientForm(forms.ModelForm):
