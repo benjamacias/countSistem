@@ -25,7 +25,8 @@ SERVICE = "wsfe"
 #WSAA_URL = "https://wsaa.afip.gov.ar/ws/services/LoginCms"
 TA_FILE = "ta.xml"
 WSDL_FE = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
-WSAA_URL = "https://wsaahomo.afip.gov.ar/ws/services/LoginCms?WSDL"
+# Endpoint real del servicio de login (no el WSDL)
+WSAA_URL = "https://wsaahomo.afip.gov.ar/ws/services/LoginCms"
 WSDL_CGT = "https://fwshomo.afip.gov.ar/ctg/services/CTGService?wsdl"
 
 
@@ -159,7 +160,13 @@ def obtener_token_y_sign():
     response = requests.post(WSAA_URL, data=soap_request.encode("utf-8"), headers=headers)
 
     if response.status_code != 200:
-        raise Exception(f"Error en WSAA: status {response.status_code}")
+        detalle = response.text.strip()
+        raise Exception(
+            "Error en WSAA: status {}{}".format(
+                response.status_code,
+                f" - {detalle}" if detalle else ""
+            )
+        )
 
     data = xmltodict.parse(response.content)
 
