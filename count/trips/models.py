@@ -287,3 +287,27 @@ class BillingError(models.Model):
     def __str__(self):
         return f"Error de facturación #{self.id}"
 
+
+class CPEAutomotor(models.Model):
+    """Almacena las respuestas del servicio ConsultarCPEAutomotor de AFIP."""
+
+    nro_ctg = models.CharField("Número CTG", max_length=20, unique=True)
+    tipo_carta_porte = models.CharField("Tipo de carta de porte", max_length=10, blank=True, null=True)
+    sucursal = models.CharField(max_length=10, blank=True, null=True)
+    nro_orden = models.CharField("Número de orden", max_length=20, blank=True, null=True)
+    estado = models.CharField(max_length=10, blank=True, null=True)
+    fecha_emision = models.DateTimeField(blank=True, null=True)
+    fecha_inicio_estado = models.DateTimeField(blank=True, null=True)
+    fecha_vencimiento = models.DateTimeField(blank=True, null=True)
+    observaciones = models.TextField(blank=True, null=True)
+    raw_response = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "CPE Automotor"
+        verbose_name_plural = "CPE Automotores"
+
+    def __str__(self) -> str:  # pragma: no cover - representación simple
+        return f"CPE {self.nro_ctg}"
+
