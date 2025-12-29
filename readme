@@ -1,5 +1,5 @@
 """
-▶️ Pasos rápidos para arrancar
+Pasos rápidos para arrancar
 --------------------------------
 1. Crear entorno virtual & instalar dependencias:
    python -m venv .venv && source .venv/bin/activate
